@@ -38,3 +38,4 @@ G1 — grey movement prototype.
 - Local lint, TypeScript, 12 unit tests, and production build pass.
 - The required browser action client was invoked, but this sandbox has no Playwright Chromium executable. GitHub Actions remains the browser evidence environment.
 - First CI browser pass succeeded, but manual screenshot review caught camera lag clipping the rider on mobile and an intrusive debug overlay. Camera snapping for deterministic time jumps and opt-in `?debug` diagnostics were added; evidence must be regenerated.
+- Second evidence review showed the cinematic lateral camera offset could still place the rider outside a narrow mobile frame at the track boundary. G1 now centers the camera on the rider; evidence must be regenerated once more.

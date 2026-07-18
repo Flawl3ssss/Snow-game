@@ -94,7 +94,7 @@ export class SnowScene {
     if (isPreparing) this.updateBand(this.leftBand, -1.65, this.rider.position);
     if (isPreparing) this.updateBand(this.rightBand, 1.65, this.rider.position);
 
-    const desiredCameraX = isPreparing ? 0 : snapshot.x * 0.56;
+    const desiredCameraX = isPreparing ? 0 : snapshot.x;
     const desiredCameraZ = isPreparing ? -10 : snapshot.z - 10;
     this.cameraX = MathUtils.lerp(this.cameraX, desiredCameraX, 0.13);
     this.cameraZ = MathUtils.lerp(this.cameraZ, desiredCameraZ, 0.13);
@@ -105,7 +105,7 @@ export class SnowScene {
       this.cameraZ,
     );
     this.camera.lookAt(
-      isPreparing ? pullX * 0.25 : snapshot.x * 0.75,
+      isPreparing ? pullX * 0.25 : snapshot.x,
       surfaceHeightAt(snapshot.x, targetZ) + 0.7,
       targetZ,
     );
@@ -119,7 +119,7 @@ export class SnowScene {
 
   snapCamera(snapshot: SledSnapshot, state: GameState): void {
     const isPreparing = state === "BASE" || state === "AIMING";
-    this.cameraX = isPreparing ? 0 : snapshot.x * 0.56;
+    this.cameraX = isPreparing ? 0 : snapshot.x;
     this.cameraZ = isPreparing ? -10 : snapshot.z - 10;
   }
 
