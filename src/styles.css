@@ -82,16 +82,16 @@ button {
   position: absolute;
   top: -12%;
   bottom: -12%;
-  width: 24%;
+  width: 18%;
   background: repeating-linear-gradient(
-    104deg,
-    transparent 0 26px,
-    rgba(226, 250, 255, 0.08) 28px 31px,
-    rgba(100, 215, 255, 0.42) 34px 37px,
-    transparent 40px 76px
+    124deg,
+    transparent 0 34px,
+    rgba(226, 250, 255, 0.08) 35px 37px,
+    rgba(100, 215, 255, 0.3) 39px 41px,
+    transparent 43px 92px
   );
-  background-size: 100% 160px;
-  animation: speed-stream 420ms linear infinite;
+  background-size: 100% 180px;
+  animation: speed-stream 480ms linear infinite;
 }
 
 .speed-vignette::before {
@@ -462,7 +462,7 @@ button {
     background-position: 0 0;
   }
   to {
-    background-position: 0 160px;
+    background-position: 0 180px;
   }
 }
 
