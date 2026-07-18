@@ -116,8 +116,11 @@ export class PenguinRider {
     this.character.position.y = pose.bodyBob;
     this.character.rotation.set(pose.bodyPitch, 0, pose.bodyLean);
     this.head.rotation.y = pose.headYaw;
-    this.leftFlipper.rotation.z = pose.flipperSpread;
-    this.rightFlipper.rotation.z = -pose.flipperSpread;
+    // The flipper meshes point down in local space. These signs rotate them
+    // away from the body; the opposite pair folds them behind the torso in the
+    // chase camera and destroys the airborne silhouette.
+    this.leftFlipper.rotation.z = -pose.flipperSpread;
+    this.rightFlipper.rotation.z = pose.flipperSpread;
     this.leftFlipper.rotation.x = snapshot.grounded ? -0.08 : -0.28;
     this.rightFlipper.rotation.x = snapshot.grounded ? -0.08 : -0.28;
     this.scarfTail.rotation.y = pose.scarfSway;

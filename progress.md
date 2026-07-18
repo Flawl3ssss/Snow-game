@@ -93,3 +93,8 @@ G4 — character identity and production art direction.
 - Verification for the art slice: 65 unit/integration tests, lint, formatting,
   typecheck, and production build pass. Chromium screenshot evidence will be
   generated and manually reviewed in CI before merge.
+- First G4 browser review covered 13 successful mobile/desktop scenarios and
+  caught two actionable issues: the airborne flipper rotations folded behind
+  the torso, and the boost scenario mixed browser wall-clock frames with a
+  deterministic time jump. Flippers now open outward, while the route test
+  uses a direct slingshot lane aim so rendering speed cannot change its path.
