@@ -33,6 +33,7 @@ import {
   type LaunchParameters,
   type SledSnapshot,
 } from "../simulation/SledSimulation";
+import { SpeedEffects, type SpeedEffectSnapshot } from "./SpeedEffects";
 
 export class SnowScene {
   private readonly renderer: WebGLRenderer;
@@ -43,6 +44,16 @@ export class SnowScene {
   private readonly leftBand: Mesh<BoxGeometry, MeshStandardMaterial>;
   private readonly rightBand: Mesh<BoxGeometry, MeshStandardMaterial>;
   private readonly courseVisuals = new Map<string, Mesh>();
+  private readonly sledMaterial = new MeshStandardMaterial({
+    color: 0x24a9d8,
+    emissive: 0x168bb0,
+    emissiveIntensity: 0,
+    roughness: 0.55,
+  });
+  private readonly speedEffects: SpeedEffects;
+  private readonly reducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
   private renderWidth = 1;
   private renderHeight = 1;
   private cameraX = 0;
@@ -50,6 +61,7 @@ export class SnowScene {
   private cameraZ = -10;
   private boostPulse = 0;
   private impactShake = 0;
+  private landingSquash = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({
@@ -76,6 +88,7 @@ export class SnowScene {
     this.createRider();
     [this.leftBand, this.rightBand] = this.createSlingshot();
     this.createScenery();
+    this.speedEffects = new SpeedEffects(this.scene);
   }
 
   resize(cssWidth: number, cssHeight: number, pixelRatio: number): void {
@@ -108,6 +121,9 @@ export class SnowScene {
       isPreparing ? aim.aim * 0.18 : snapshot.headingRadians,
       isPreparing ? 0 : snapshot.rollRadians,
     );
+    const squash = this.reducedMotion ? 0 : this.landingSquash;
+    this.rider.scale.set(1 + squash * 0.045, 1 - squash * 0.075, 1.02);
+    this.sledMaterial.emissiveIntensity = this.boostPulse * 1.15;
     this.slingshot.visible = isPreparing;
     if (isPreparing) this.updateBand(this.leftBand, -1.65, this.rider.position);
     if (isPreparing) this.updateBand(this.rightBand, 1.65, this.rider.position);
@@ -142,7 +158,9 @@ export class SnowScene {
           targetTerrainY,
           snapshot.height + (snapshot.grounded ? 0.2 : -0.2),
         );
-    const shake = this.impactShake * Math.sin(snapshot.elapsedSeconds * 70);
+    const shake = this.reducedMotion
+      ? 0
+      : this.impactShake * Math.sin(snapshot.elapsedSeconds * 70);
     this.camera.position.set(
       this.cameraX + shake * 0.22,
       this.cameraY + Math.abs(shake) * 0.08,
@@ -153,26 +171,33 @@ export class SnowScene {
       targetY,
       targetZ,
     );
-    const desiredFov =
-      55 + Math.min(7, snapshot.forwardSpeed * 0.26) + this.boostPulse * 4;
+    const desiredFov = this.reducedMotion
+      ? 55
+      : 55 + Math.min(7, snapshot.forwardSpeed * 0.26) + this.boostPulse * 4;
     this.camera.fov = MathUtils.lerp(this.camera.fov, desiredFov, 0.09);
     this.camera.updateProjectionMatrix();
+    this.speedEffects.update(snapshot, state === "RIDING");
     this.boostPulse *= 0.9;
     this.impactShake *= 0.84;
+    this.landingSquash *= 0.78;
     this.renderer.render(this.scene, this.camera);
   }
 
   triggerCourseEvent(event: DynamicsEvent): void {
+    this.speedEffects.trigger(event);
     if (event.type === "boost") this.boostPulse = 1;
     if (event.type === "rock") this.impactShake = 1;
-    if (event.type === "airtime")
+    if (event.type === "airtime") {
       this.boostPulse = Math.max(this.boostPulse, 0.35);
+      this.landingSquash = MathUtils.clamp(event.seconds * 0.6, 0.35, 1);
+    }
   }
 
   resetCamera(): void {
     this.cameraX = 0;
     this.cameraY = 5.5;
     this.cameraZ = -10;
+    this.speedEffects.reset();
   }
 
   snapCamera(snapshot: SledSnapshot, state: GameState): void {
@@ -189,7 +214,12 @@ export class SnowScene {
     return `${this.renderWidth}×${this.renderHeight}`;
   }
 
+  get effectSnapshot(): SpeedEffectSnapshot {
+    return this.speedEffects.snapshot;
+  }
+
   dispose(): void {
+    this.speedEffects.dispose();
     this.scene.traverse((object) => {
       if (!(object instanceof Mesh)) return;
       const mesh = object as Mesh<BufferGeometry, Material | Material[]>;
@@ -239,10 +269,7 @@ export class SnowScene {
   }
 
   private createRider(): void {
-    const sled = new Mesh(
-      new BoxGeometry(2.1, 0.2, 2.8),
-      new MeshStandardMaterial({ color: 0x24a9d8, roughness: 0.55 }),
-    );
+    const sled = new Mesh(new BoxGeometry(2.1, 0.2, 2.8), this.sledMaterial);
     sled.position.y = 0.1;
     const body = new Mesh(
       new SphereGeometry(0.68, 20, 14),

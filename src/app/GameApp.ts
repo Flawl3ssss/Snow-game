@@ -304,6 +304,7 @@ export class GameApp {
           consumedIds: [...this.dynamics.snapshot.consumedIds],
         },
         progress: this.progression.snapshot,
+        visualEffects: this.scene.effectSnapshot,
       });
     };
 
