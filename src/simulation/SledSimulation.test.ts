@@ -191,4 +191,18 @@ describe("SledSimulation", () => {
     expect(Math.min(...edgeSamples)).toBeGreaterThanOrEqual(0);
     expect(Math.abs(simulation.snapshot.headingRadians)).toBeLessThan(0.002);
   });
+
+  it("applies progression upgrades and course impulses predictably", () => {
+    const simulation = new SledSimulation();
+    simulation.configureUpgrades({
+      launchSpeedBonus: 1.5,
+      snowResistanceMultiplier: 0.88,
+    });
+    simulation.launch({ power: 1, aim: 0 });
+    expect(simulation.snapshot.forwardSpeed).toBeCloseTo(25.5, 8);
+    simulation.applyBoost(3.5);
+    expect(simulation.snapshot.forwardSpeed).toBeCloseTo(29, 8);
+    simulation.applyObstacleHit();
+    expect(simulation.snapshot.forwardSpeed).toBeCloseTo(20.88, 8);
+  });
 });
