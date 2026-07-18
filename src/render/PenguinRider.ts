@@ -6,7 +6,6 @@ import {
   Group,
   MathUtils,
   Mesh,
-  MeshPhysicalMaterial,
   MeshStandardMaterial,
   SphereGeometry,
   TorusGeometry,
@@ -78,38 +77,32 @@ export class PenguinRider {
   private readonly scarfTail = new Group();
 
   constructor() {
-    const navy = new MeshPhysicalMaterial({
+    const navy = new MeshStandardMaterial({
       color: 0x17324a,
       roughness: 0.64,
-      clearcoat: 0.12,
-      clearcoatRoughness: 0.76,
     });
-    const ivory = new MeshPhysicalMaterial({
+    const ivory = new MeshStandardMaterial({
       color: 0xfff1d6,
       roughness: 0.72,
-      clearcoat: 0.08,
     });
-    const coral = new MeshPhysicalMaterial({
+    const coral = new MeshStandardMaterial({
       color: 0xff765c,
       roughness: 0.58,
-      clearcoat: 0.2,
     });
     const eye = new MeshStandardMaterial({
       color: 0x102536,
       roughness: 0.72,
     });
-    const runner = new MeshPhysicalMaterial({
+    const runner = new MeshStandardMaterial({
       color: 0x91a9b5,
       roughness: 0.22,
       metalness: 0.82,
-      clearcoat: 0.45,
     });
-    this.sledMaterial = new MeshPhysicalMaterial({
+    this.sledMaterial = new MeshStandardMaterial({
       color: 0x20b6c9,
       emissive: 0x168bb0,
       emissiveIntensity: 0,
       roughness: 0.43,
-      clearcoat: 0.38,
     });
 
     this.createSled(runner);
@@ -176,10 +169,9 @@ export class PenguinRider {
       brace.position.set(0, 0.16, z);
       deck.add(brace);
     }
-    const leather = new MeshPhysicalMaterial({
+    const leather = new MeshStandardMaterial({
       color: 0x6f412e,
       roughness: 0.7,
-      clearcoat: 0.12,
     });
     for (const z of [-0.78, 0.78]) {
       const strap = new Mesh(
@@ -193,9 +185,9 @@ export class PenguinRider {
   }
 
   private createPenguin(
-    navy: MeshPhysicalMaterial,
-    ivory: MeshPhysicalMaterial,
-    coral: MeshPhysicalMaterial,
+    navy: MeshStandardMaterial,
+    ivory: MeshStandardMaterial,
+    coral: MeshStandardMaterial,
     eye: MeshStandardMaterial,
   ): void {
     const body = new Mesh(new CapsuleGeometry(0.57, 0.68, 10, 24), navy);

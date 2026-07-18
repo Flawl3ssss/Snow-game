@@ -108,3 +108,9 @@ G5 — premium smooth stylized 3D production models.
   TubeGeometry runners and ramp rails, rounded sled boards and straps,
   articulated ice snowflakes, inset-chevron boost pads, smooth snow-capped
   rocks, high-segment trees/mountains, wooden signs, and safety fencing.
+- First G5 CI exposed a draw-call failure rather than a physics regression:
+  compound details were still separate meshes, making screenshots exceed the
+  45-second software-WebGL budget. Same-material pieces are now merged so a
+  snowflake uses one draw call instead of 16, boosts use two instead of seven,
+  and signs, fences, and slingshot posts use two each. Expensive physical
+  shader features were removed where they did not survive gameplay distance.

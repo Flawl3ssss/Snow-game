@@ -419,9 +419,12 @@ export class SnowScene {
   }
 
   private createScenery(): void {
-    const trunkGeometry = new CylinderGeometry(1, 1, 1, 16, 2);
-    const crownGeometry = new SphereGeometry(1, 20, 14);
-    const mountainGeometry = new ConeGeometry(1, 1, 32, 8);
+    const trunkGeometry = new CylinderGeometry(1, 1, 1, 12, 2);
+    // These meshes live outside the playable lane. Fourteen radial segments
+    // remain visually smooth at their camera size without wasting fill time in
+    // the software-WebGL evidence runner.
+    const crownGeometry = new SphereGeometry(1, 14, 10);
+    const mountainGeometry = new ConeGeometry(1, 1, 24, 5);
     const trunks = new InstancedMesh(trunkGeometry, this.materials.bark, 46);
     const lowerCrowns = new InstancedMesh(
       crownGeometry,
@@ -562,7 +565,7 @@ export class SnowScene {
       sign.rotation.y = side < 0 ? 0.22 : -0.22;
       this.scene.add(sign);
     }
-    for (let index = 0; index < 16; index += 1) {
+    for (let index = 0; index < 10; index += 1) {
       const side = index % 2 === 0 ? -1 : 1;
       const z = 24 + Math.floor(index / 2) * 42;
       const fence = createFenceSection(this.materials);

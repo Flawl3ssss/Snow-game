@@ -21,13 +21,13 @@ const meshCount = (root: ReturnType<typeof createSnowflakeModel>): number => {
 describe("premium world models", () => {
   const materials = createPremiumMaterials();
 
-  it("builds articulated models instead of single primitive placeholders", () => {
-    expect(meshCount(createSnowflakeModel(materials))).toBe(16);
-    expect(meshCount(createBoostPadModel(materials))).toBe(7);
+  it("merges compound details into a mobile draw-call budget", () => {
+    expect(meshCount(createSnowflakeModel(materials))).toBe(1);
+    expect(meshCount(createBoostPadModel(materials))).toBe(2);
     expect(meshCount(createRockModel(materials, 1))).toBe(2);
-    expect(meshCount(createDirectionSign(-1, materials))).toBe(4);
-    expect(meshCount(createFenceSection(materials))).toBe(4);
-    expect(meshCount(createSlingshotPost(-1, materials))).toBe(3);
+    expect(meshCount(createDirectionSign(-1, materials))).toBe(2);
+    expect(meshCount(createFenceSection(materials))).toBe(2);
+    expect(meshCount(createSlingshotPost(-1, materials))).toBe(2);
   });
 
   it("keeps interactive model roots centered for collision placement", () => {

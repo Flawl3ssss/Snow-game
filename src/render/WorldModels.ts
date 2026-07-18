@@ -5,58 +5,51 @@ import {
   IcosahedronGeometry,
   MathUtils,
   Mesh,
-  MeshPhysicalMaterial,
   MeshStandardMaterial,
   SphereGeometry,
   TorusGeometry,
   TubeGeometry,
   Vector3,
 } from "three";
-import type { Object3D } from "three";
+import type { BufferGeometry, Object3D } from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 export type PremiumMaterials = ReturnType<typeof createPremiumMaterials>;
 
 export const createPremiumMaterials = () => ({
-  snow: new MeshPhysicalMaterial({
+  snow: new MeshStandardMaterial({
     color: 0xf4fbff,
     roughness: 0.72,
-    clearcoat: 0.18,
-    clearcoatRoughness: 0.72,
   }),
   snowShadow: new MeshStandardMaterial({ color: 0xc4e3ef, roughness: 0.9 }),
   pine: new MeshStandardMaterial({ color: 0x176650, roughness: 0.78 }),
   pineLight: new MeshStandardMaterial({ color: 0x27826b, roughness: 0.8 }),
   bark: new MeshStandardMaterial({ color: 0x75452e, roughness: 0.82 }),
-  wood: new MeshPhysicalMaterial({
+  wood: new MeshStandardMaterial({
     color: 0x8a512f,
     roughness: 0.58,
-    clearcoat: 0.12,
   }),
   rock: new MeshStandardMaterial({ color: 0x526b79, roughness: 0.86 }),
-  ice: new MeshPhysicalMaterial({
+  ice: new MeshStandardMaterial({
     color: 0x67e8f9,
     emissive: 0x087baf,
     emissiveIntensity: 1.05,
     roughness: 0.12,
     metalness: 0.05,
-    transmission: 0.12,
-    thickness: 0.3,
     transparent: true,
     opacity: 0.9,
   }),
-  gold: new MeshPhysicalMaterial({
+  gold: new MeshStandardMaterial({
     color: 0xffc83d,
     emissive: 0xff7a18,
     emissiveIntensity: 0.78,
     roughness: 0.27,
     metalness: 0.46,
-    clearcoat: 0.5,
   }),
-  orange: new MeshPhysicalMaterial({
+  orange: new MeshStandardMaterial({
     color: 0xff794d,
     roughness: 0.48,
-    clearcoat: 0.28,
   }),
   mountain: new MeshStandardMaterial({ color: 0x789bb1, roughness: 0.94 }),
   mountainSnow: new MeshStandardMaterial({ color: 0xeaf7fb, roughness: 0.9 }),
@@ -67,9 +60,33 @@ const roundedBar = (
   height: number,
   depth: number,
   radius: number,
-  material: MeshStandardMaterial | MeshPhysicalMaterial,
+  material: MeshStandardMaterial,
 ): Mesh =>
   new Mesh(new RoundedBoxGeometry(width, height, depth, 3, radius), material);
+
+const collapseModel = (
+  source: Group,
+  materials: readonly MeshStandardMaterial[],
+): Group => {
+  source.updateMatrixWorld(true);
+  const result = new Group();
+  for (const material of materials) {
+    const geometries: BufferGeometry[] = [];
+    source.traverse((object) => {
+      if (!(object instanceof Mesh) || object.material !== material) return;
+      const mesh = object as Mesh<BufferGeometry, MeshStandardMaterial>;
+      const geometry = mesh.geometry.index
+        ? mesh.geometry.toNonIndexed()
+        : mesh.geometry.clone();
+      geometry.applyMatrix4(mesh.matrixWorld);
+      geometries.push(geometry);
+    });
+    if (geometries.length === 0) continue;
+    const merged = mergeGeometries(geometries, false);
+    if (merged) result.add(new Mesh(merged, material));
+  }
+  return result;
+};
 
 export const createSnowflakeModel = (materials: PremiumMaterials): Group => {
   const root = new Group();
@@ -91,7 +108,7 @@ export const createSnowflakeModel = (materials: PremiumMaterials): Group => {
     root.add(axis);
   }
   root.scale.setScalar(0.88);
-  return root;
+  return collapseModel(root, [materials.ice]);
 };
 
 export const createBoostPadModel = (materials: PremiumMaterials): Group => {
@@ -106,7 +123,7 @@ export const createBoostPadModel = (materials: PremiumMaterials): Group => {
       root.add(chevron);
     }
   }
-  return root;
+  return collapseModel(root, [materials.gold, materials.snow]);
 };
 
 export const createRockModel = (
@@ -121,7 +138,7 @@ export const createRockModel = (
   cap.scale.set(1.08, 0.24, 0.86);
   cap.position.set(-0.05, 0.58, -0.02);
   root.add(stone, cap);
-  return root;
+  return collapseModel(root, [materials.rock, materials.snow]);
 };
 
 export const createSlingshotPost = (
@@ -144,7 +161,7 @@ export const createSlingshotPost = (
   cap.scale.y = 0.42;
   cap.position.y = 1.36;
   root.add(post, collar, cap);
-  return root;
+  return collapseModel(root, [materials.wood, materials.orange]);
 };
 
 export const createRampRail = (
@@ -184,7 +201,7 @@ export const createDirectionSign = (
   head.rotation.set(0, 0, direction * Math.PI * 0.5);
   head.position.set(direction * 0.46, 2.15, 0.13);
   root.add(pole, board, shaft, head);
-  return root;
+  return collapseModel(root, [materials.wood, materials.snow]);
 };
 
 export const createFenceSection = (materials: PremiumMaterials): Group => {
@@ -202,7 +219,7 @@ export const createFenceSection = (materials: PremiumMaterials): Group => {
     rail.position.y = y;
     root.add(rail);
   }
-  return root;
+  return collapseModel(root, [materials.wood, materials.orange]);
 };
 
 export const setInstance = (
