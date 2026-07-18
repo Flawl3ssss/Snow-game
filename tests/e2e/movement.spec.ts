@@ -30,6 +30,7 @@ type GameText = {
     windIntensity: number;
     activeSprayParticles: number;
     activeBurstParticles: number;
+    activeShockwaves: number;
     shadowClearance: number;
   };
 };
@@ -215,6 +216,7 @@ test("dynamic course awards a pickup, score, and visible feedback", async ({
   expect(state.visualEffects.windIntensity).toBeGreaterThan(0.2);
   expect(state.visualEffects.activeSprayParticles).toBeGreaterThan(0);
   expect(state.visualEffects.activeBurstParticles).toBeGreaterThan(0);
+  expect(state.visualEffects.activeShockwaves).toBeGreaterThan(0);
   await expect(page.getByTestId("run-goal")).toContainText("1/3");
   await page.screenshot({
     path: `artifacts/playtests/g2-dynamic-course-${test.info().project.name}.png`,
