@@ -5,11 +5,13 @@ import {
   ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
+  DodecahedronGeometry,
   Fog,
   Group,
   MathUtils,
   Mesh,
   MeshStandardMaterial,
+  OctahedronGeometry,
   PerspectiveCamera,
   PlaneGeometry,
   Scene,
@@ -20,6 +22,11 @@ import {
 } from "three";
 import type { BufferAttribute, BufferGeometry, Material } from "three";
 import type { GameState } from "../app/GameStateMachine";
+import {
+  COURSE_OBJECTS,
+  type DynamicsEvent,
+  type RunDynamicsSnapshot,
+} from "../gameplay/RunDynamics";
 import {
   surfaceHeightAt,
   surfaceSlopeZAt,
@@ -35,11 +42,14 @@ export class SnowScene {
   private readonly slingshot = new Group();
   private readonly leftBand: Mesh<BoxGeometry, MeshStandardMaterial>;
   private readonly rightBand: Mesh<BoxGeometry, MeshStandardMaterial>;
+  private readonly courseVisuals = new Map<string, Mesh>();
   private renderWidth = 1;
   private renderHeight = 1;
   private cameraX = 0;
   private cameraY = 5.5;
   private cameraZ = -10;
+  private boostPulse = 0;
+  private impactShake = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({
@@ -62,6 +72,7 @@ export class SnowScene {
 
     this.scene.add(this.createTrack());
     this.createRampMarkers();
+    this.createCourseObjects();
     this.createRider();
     [this.leftBand, this.rightBand] = this.createSlingshot();
     this.createScenery();
@@ -80,6 +91,7 @@ export class SnowScene {
     snapshot: SledSnapshot,
     state: GameState,
     aim: LaunchParameters,
+    dynamics: RunDynamicsSnapshot,
   ): void {
     const isPreparing = state === "BASE" || state === "AIMING";
     const pullZ = isPreparing ? -aim.power * 3.1 : 0;
@@ -100,6 +112,19 @@ export class SnowScene {
     if (isPreparing) this.updateBand(this.leftBand, -1.65, this.rider.position);
     if (isPreparing) this.updateBand(this.rightBand, 1.65, this.rider.position);
 
+    for (const object of COURSE_OBJECTS) {
+      const visual = this.courseVisuals.get(object.id);
+      if (!visual) continue;
+      visual.visible = !dynamics.consumedIds.has(object.id);
+      if (object.kind === "coin") {
+        visual.rotation.y = snapshot.elapsedSeconds * 2.8 + object.z * 0.1;
+        visual.position.y =
+          surfaceHeightAt(object.x, object.z) +
+          1.05 +
+          Math.sin(snapshot.elapsedSeconds * 4 + object.z) * 0.12;
+      }
+    }
+
     const desiredCameraX = isPreparing ? 0 : snapshot.x;
     const desiredCameraZ = isPreparing ? -10 : snapshot.z - 10;
     this.cameraX = MathUtils.lerp(this.cameraX, desiredCameraX, 0.13);
@@ -117,13 +142,31 @@ export class SnowScene {
           targetTerrainY,
           snapshot.height + (snapshot.grounded ? 0.2 : -0.2),
         );
-    this.camera.position.set(this.cameraX, this.cameraY, this.cameraZ);
+    const shake = this.impactShake * Math.sin(snapshot.elapsedSeconds * 70);
+    this.camera.position.set(
+      this.cameraX + shake * 0.22,
+      this.cameraY + Math.abs(shake) * 0.08,
+      this.cameraZ,
+    );
     this.camera.lookAt(
       isPreparing ? pullX * 0.25 : snapshot.x,
       targetY,
       targetZ,
     );
+    const desiredFov =
+      55 + Math.min(7, snapshot.forwardSpeed * 0.26) + this.boostPulse * 4;
+    this.camera.fov = MathUtils.lerp(this.camera.fov, desiredFov, 0.09);
+    this.camera.updateProjectionMatrix();
+    this.boostPulse *= 0.9;
+    this.impactShake *= 0.84;
     this.renderer.render(this.scene, this.camera);
+  }
+
+  triggerCourseEvent(event: DynamicsEvent): void {
+    if (event.type === "boost") this.boostPulse = 1;
+    if (event.type === "rock") this.impactShake = 1;
+    if (event.type === "airtime")
+      this.boostPulse = Math.max(this.boostPulse, 0.35);
   }
 
   resetCamera(): void {
@@ -209,6 +252,58 @@ export class SnowScene {
     body.position.set(0, 0.9, 0.1);
     this.rider.add(sled, body);
     this.scene.add(this.rider);
+  }
+
+  private createCourseObjects(): void {
+    const coinMaterial = new MeshStandardMaterial({
+      color: 0x72e8ff,
+      emissive: 0x167b9e,
+      emissiveIntensity: 1.2,
+      roughness: 0.3,
+      metalness: 0.15,
+    });
+    const boostMaterial = new MeshStandardMaterial({
+      color: 0xffd04f,
+      emissive: 0xff6f2d,
+      emissiveIntensity: 0.9,
+      roughness: 0.55,
+    });
+    const rockMaterial = new MeshStandardMaterial({
+      color: 0x526b79,
+      roughness: 0.95,
+    });
+
+    for (const object of COURSE_OBJECTS) {
+      let visual: Mesh;
+      if (object.kind === "coin") {
+        visual = new Mesh(new OctahedronGeometry(0.48, 0), coinMaterial);
+        visual.scale.set(0.7, 1.25, 0.7);
+        visual.position.set(
+          object.x,
+          surfaceHeightAt(object.x, object.z) + 1.05,
+          object.z,
+        );
+      } else if (object.kind === "boost") {
+        visual = new Mesh(new BoxGeometry(4.8, 0.12, 3.2), boostMaterial);
+        visual.position.set(
+          object.x,
+          surfaceHeightAt(object.x, object.z) + 0.08,
+          object.z,
+        );
+        visual.rotation.x = -Math.atan(surfaceSlopeZAt(object.x, object.z));
+      } else {
+        visual = new Mesh(new DodecahedronGeometry(0.82, 0), rockMaterial);
+        visual.scale.set(1.2, 0.9, 1);
+        visual.position.set(
+          object.x,
+          surfaceHeightAt(object.x, object.z) + 0.66,
+          object.z,
+        );
+        visual.rotation.set(0.2, object.z, 0.12);
+      }
+      this.courseVisuals.set(object.id, visual);
+      this.scene.add(visual);
+    }
   }
 
   private createSlingshot(): [
