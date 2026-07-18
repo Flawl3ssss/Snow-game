@@ -12,6 +12,20 @@ type GameText = {
     landingImpact: number;
     stopped: boolean;
   };
+  dynamics: {
+    score: number;
+    runCoins: number;
+    combo: number;
+    missionProgress: number;
+    missionComplete: boolean;
+    consumedIds: string[];
+  };
+  progress: {
+    coins: number;
+    totalRuns: number;
+    launchLevel: number;
+    glideLevel: number;
+  };
 };
 
 type GameHooks = {
@@ -171,4 +185,23 @@ test("ramp produces a rising arc, falling arc, and grounded landing", async ({
   const landed = await readGame(page);
   expect(landed.rider.grounded).toBe(true);
   expect(landed.rider.landingImpact).toBeGreaterThan(2);
+});
+
+test("dynamic course awards a pickup, score, and visible feedback", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await launch(page, 0);
+  await advance(page, 1700);
+
+  const state = await readGame(page);
+  expect(state.dynamics.runCoins).toBeGreaterThanOrEqual(1);
+  expect(state.dynamics.score).toBeGreaterThan(state.distanceMeters);
+  expect(state.dynamics.missionProgress).toBeGreaterThanOrEqual(1);
+  expect(state.dynamics.consumedIds).toContain("c03");
+  await expect(page.getByTestId("run-goal")).toContainText("1/3");
+  await page.screenshot({
+    path: `artifacts/playtests/g2-dynamic-course-${test.info().project.name}.png`,
+    fullPage: true,
+  });
 });
