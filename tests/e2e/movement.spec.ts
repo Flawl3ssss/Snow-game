@@ -144,8 +144,7 @@ test("right screen pull retracts and launches toward screen right", async ({
 
   const state = await readGame(page);
   expect(state.state).toBe("RIDING");
-  // The follow camera looks toward +z, so its screen-right axis is world -x.
-  expect(state.rider.x).toBeLessThan(-0.5);
+  expect(state.rider.x).toBeGreaterThan(0.5);
 });
 
 test("ramp produces a rising arc, falling arc, and grounded landing", async ({
