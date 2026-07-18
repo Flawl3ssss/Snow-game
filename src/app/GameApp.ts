@@ -202,6 +202,7 @@ export class GameApp {
         droppedSeconds: 0,
         interpolationAlpha: 0,
       };
+      this.scene.snapCamera(this.simulation.snapshot, this.stateMachine.state);
       this.render();
     };
   }

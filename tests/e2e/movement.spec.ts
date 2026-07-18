@@ -56,6 +56,10 @@ test("right launch, direct steering, stable stop, and reset", async ({
 
   await page.goto("/");
   await expect(page.getByTestId("state-chip")).toHaveText("BASE");
+  await page.screenshot({
+    path: `artifacts/playtests/g1-base-${test.info().project.name}.png`,
+    fullPage: true,
+  });
   await launch(page, 42);
 
   await page.keyboard.down("ArrowRight");

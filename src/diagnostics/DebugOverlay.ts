@@ -18,6 +18,9 @@ export class DebugOverlay {
     this.element.className = "debug-overlay";
     this.element.dataset.testid = "debug-overlay";
     this.element.setAttribute("aria-hidden", "true");
+    this.element.hidden = !new URLSearchParams(window.location.search).has(
+      "debug",
+    );
     parent.append(this.element);
   }
 

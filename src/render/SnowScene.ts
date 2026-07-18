@@ -117,6 +117,12 @@ export class SnowScene {
     this.cameraZ = -10;
   }
 
+  snapCamera(snapshot: SledSnapshot, state: GameState): void {
+    const isPreparing = state === "BASE" || state === "AIMING";
+    this.cameraX = isPreparing ? 0 : snapshot.x * 0.56;
+    this.cameraZ = isPreparing ? -10 : snapshot.z - 10;
+  }
+
   get sizeLabel(): string {
     return `${this.renderWidth}×${this.renderHeight}`;
   }
