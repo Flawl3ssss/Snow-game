@@ -177,6 +177,7 @@ test("ramp produces a rising arc, falling arc, and grounded landing", async ({
     largestImpact = Math.max(largestImpact, state.rider.landingImpact);
     if (!previousGrounded && state.rider.grounded) sawLanding = true;
     previousGrounded = state.rider.grounded;
+    if (sawLanding && capturedFlight) break;
   }
 
   expect(sawRisingFlight).toBe(true);
