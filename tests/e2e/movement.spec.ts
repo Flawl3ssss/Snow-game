@@ -191,6 +191,7 @@ test("ramp produces a rising arc, falling arc, and grounded landing", async ({
   const falling = await readGame(page);
   expect(falling.rider.grounded).toBe(false);
   expect(falling.rider.verticalSpeed).toBeLessThan(-0.25);
+  expect(falling.dynamics.consumedIds).not.toContain("c08");
   await page.screenshot({
     path: `artifacts/playtests/g1-airborne-${test.info().project.name}.png`,
     fullPage: true,
@@ -224,7 +225,7 @@ test("dynamic course awards a pickup, score, and visible feedback", async ({
   expect(state.visualEffects.activeBurstParticles).toBeGreaterThan(0);
   expect(state.visualEffects.activeShockwaves).toBeGreaterThan(0);
   expect(state.visualEffects.wakeOpacity).toBeGreaterThan(0.3);
-  await expect(page.getByTestId("run-goal")).toContainText("1/3");
+  await expect(page.getByTestId("run-goal")).toContainText("Цель выполнена");
   await page.screenshot({
     path: `artifacts/playtests/g2-dynamic-course-${test.info().project.name}.png`,
     fullPage: true,
@@ -237,9 +238,9 @@ test("side boost creates a gold burst and readable speed feedback", async ({
   await page.goto("/");
   await launch(page, 0);
   await page.keyboard.down("KeyA");
-  await advance(page, 500);
+  await advance(page, 320);
   await page.keyboard.up("KeyA");
-  await advance(page, 1500);
+  await advance(page, 2000);
 
   const state = await readGame(page);
   expect(state.dynamics.consumedIds).toContain("b01");

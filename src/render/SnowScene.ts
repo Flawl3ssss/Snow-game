@@ -30,6 +30,7 @@ import {
 } from "../gameplay/RunDynamics";
 import {
   RAMP_PHYSICAL_HALF_WIDTH,
+  RAMP_SURFACES,
   surfaceHeightAt,
   surfaceSlopeZAt,
   type LaunchParameters,
@@ -280,14 +281,30 @@ export class SnowScene {
       color: 0xff8b36,
       roughness: 0.82,
       metalness: 0,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
     });
-    for (const z of [66, 135]) {
-      const marker = new Mesh(
-        new BoxGeometry(RAMP_PHYSICAL_HALF_WIDTH * 2, 0.1, 7.5),
-        material,
+    for (const ramp of RAMP_SURFACES) {
+      const length = ramp.end - ramp.start;
+      const centerZ = (ramp.start + ramp.end) * 0.5;
+      const geometry = new PlaneGeometry(
+        RAMP_PHYSICAL_HALF_WIDTH * 2 + 0.16,
+        length,
+        16,
+        32,
       );
-      marker.position.set(0, surfaceHeightAt(0, z) + 0.06, z);
-      marker.rotation.x = -Math.atan(surfaceSlopeZAt(0, z));
+      geometry.rotateX(-Math.PI / 2);
+      const positions = geometry.getAttribute("position") as BufferAttribute;
+
+      for (let index = 0; index < positions.count; index += 1) {
+        const x = positions.getX(index);
+        const z = positions.getZ(index) + centerZ;
+        positions.setXYZ(index, x, surfaceHeightAt(x, z) + 0.045, z);
+      }
+
+      geometry.computeVertexNormals();
+      const marker = new Mesh(geometry, material);
       this.scene.add(marker);
     }
   }

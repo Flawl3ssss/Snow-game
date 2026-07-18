@@ -72,3 +72,8 @@ G3 — visual dynamics and speed readability.
 - Speed feedback now starts at 9.5 m/s, reaches full intensity at 25 m/s, uses animated edge streams with a clear center, expands FOV by up to 10 degrees, and gives boosts a longer emissive pulse plus local gold light.
 - Ramp edge root cause fixed: a landing immediately before the next lip no longer lets the generic 0.22 s anti-bounce cooldown suppress a real ramp. Each explicit ramp zone is consumed once, preventing both missed takeoffs and duplicate hops.
 - Physical and orange marker ramp width now match at ±6.4 m. Boosted lines at x = ±6.2, ±5, and center are regression-tested with 50 ms physics steps.
+- Ground-object collision sweeps now require both endpoints to be grounded. Airborne passes and takeoff/landing transition frames cannot collect snowflakes, trigger boosts, or hit rocks; skipped objects remain unconsumed.
+- The first three tutorial snowflakes now form a fair center ground line before the first ramp, preserving the 3-snowflake onboarding goal without relying on the former airborne collision bug.
+- Ground steering response, lateral authority, and high-speed traction were increased. Lateral targets fade to zero with forward momentum, so steering cannot propel a stopped sled sideways.
+- Ramp visuals now tessellate and conform to the exact shared physical ramp surfaces from start to end. The former short flat boxes and exposed snow crest were removed.
+- Verification: 62 unit/integration tests, typecheck, lint, formatting, and production build pass. Browser test invocation is locally blocked before page launch because the Playwright Chromium executable is absent; CI remains the screenshot/e2e verification environment.
