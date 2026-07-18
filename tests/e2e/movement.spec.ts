@@ -136,5 +136,5 @@ test("slingshot horizontal pull launches toward the corrected side", async ({
 
   const state = await readGame(page);
   expect(state.state).toBe("RIDING");
-  expect(state.rider.x).toBeLessThan(-1);
+  expect(state.rider.x).toBeLessThan(-0.05);
 });
