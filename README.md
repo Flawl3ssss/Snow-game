@@ -2,6 +2,10 @@
 
 Production-oriented mobile 3D web game prototype based on the Snow Sling GDD.
 
+## Play
+
+[Open the current playable build](https://flawl3ssss.github.io/Snow-game/)
+
 ## Current stage
 
 `G1 — Movement prototype`: pull/aim/release launch, deterministic sled movement, direct steering, natural speed decay, stable stop, and results loop.
