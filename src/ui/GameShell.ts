@@ -1,5 +1,8 @@
 import type { GameState } from "../app/GameStateMachine";
-import type { FoundationSnapshot } from "../simulation/FoundationSimulation";
+import type {
+  LaunchParameters,
+  SledSnapshot,
+} from "../simulation/SledSimulation";
 
 export class GameShell {
   readonly canvas: HTMLCanvasElement;
@@ -7,7 +10,13 @@ export class GameShell {
   private readonly stateChip: HTMLDivElement;
   private readonly distanceLabel: HTMLSpanElement;
   private readonly speedLabel: HTMLSpanElement;
-  private readonly actionButton: HTMLButtonElement;
+  private readonly launchPanel: HTMLDivElement;
+  private readonly launchTitle: HTMLHeadingElement;
+  private readonly powerFill: HTMLDivElement;
+  private readonly aimLabel: HTMLSpanElement;
+  private readonly resultsPanel: HTMLDivElement;
+  private readonly resultDistance: HTMLElement;
+  private readonly resetButton: HTMLButtonElement;
 
   constructor(root: HTMLElement) {
     root.innerHTML = `
@@ -24,13 +33,20 @@ export class GameShell {
             <div><strong data-testid="distance">0</strong><span>м</span></div>
             <div><strong data-testid="speed">0</strong><span>м/с</span></div>
           </div>
-          <div class="foundation-card">
-            <span class="foundation-card__eyebrow">G0 · FOUNDATION</span>
-            <h1>Основа снежного спуска</h1>
-            <p>Сейчас проверяются архитектура, fixed-step цикл и стабильная 3D-сцена. Герой временный.</p>
-            <button class="primary-action" type="button" data-testid="primary-action" disabled>
-              Подготовка…
-            </button>
+          <div class="launch-panel" data-testid="launch-panel">
+            <span class="panel-eyebrow">G1 · ЗАПУСК</span>
+            <h1>Потяни героя вниз</h1>
+            <p>Смести палец в сторону, чтобы выбрать начальное направление, затем отпусти.</p>
+            <div class="power-meter" aria-label="Сила запуска">
+              <div class="power-meter__fill" data-testid="power-fill"></div>
+            </div>
+            <span class="aim-label" data-testid="aim-label">направление: прямо</span>
+          </div>
+          <div class="results-panel" data-testid="results-panel" hidden>
+            <span class="panel-eyebrow">ЗАЕЗД ЗАВЕРШЁН</span>
+            <h2><strong data-testid="result-distance">0</strong> м</h2>
+            <p>Это техническая дистанция G1. Экономика появится только после приятного управления.</p>
+            <button class="primary-action" type="button" data-testid="reset-action">Ещё запуск</button>
           </div>
         </section>
       </main>
@@ -45,8 +61,24 @@ export class GameShell {
     const speedLabel = root.querySelector<HTMLSpanElement>(
       '[data-testid="speed"]',
     );
-    const actionButton = root.querySelector<HTMLButtonElement>(
-      '[data-testid="primary-action"]',
+    const launchPanel = root.querySelector<HTMLDivElement>(
+      '[data-testid="launch-panel"]',
+    );
+    const launchTitle = launchPanel?.querySelector<HTMLHeadingElement>("h1");
+    const powerFill = root.querySelector<HTMLDivElement>(
+      '[data-testid="power-fill"]',
+    );
+    const aimLabel = root.querySelector<HTMLSpanElement>(
+      '[data-testid="aim-label"]',
+    );
+    const resultsPanel = root.querySelector<HTMLDivElement>(
+      '[data-testid="results-panel"]',
+    );
+    const resultDistance = root.querySelector<HTMLElement>(
+      '[data-testid="result-distance"]',
+    );
+    const resetButton = root.querySelector<HTMLButtonElement>(
+      '[data-testid="reset-action"]',
     );
 
     if (
@@ -55,7 +87,13 @@ export class GameShell {
       !stateChip ||
       !distanceLabel ||
       !speedLabel ||
-      !actionButton
+      !launchPanel ||
+      !launchTitle ||
+      !powerFill ||
+      !aimLabel ||
+      !resultsPanel ||
+      !resultDistance ||
+      !resetButton
     ) {
       throw new Error("Failed to create game shell");
     }
@@ -65,32 +103,44 @@ export class GameShell {
     this.stateChip = stateChip;
     this.distanceLabel = distanceLabel;
     this.speedLabel = speedLabel;
-    this.actionButton = actionButton;
+    this.launchPanel = launchPanel;
+    this.launchTitle = launchTitle;
+    this.powerFill = powerFill;
+    this.aimLabel = aimLabel;
+    this.resultsPanel = resultsPanel;
+    this.resultDistance = resultDistance;
+    this.resetButton = resetButton;
   }
 
-  onAction(listener: () => void): void {
-    this.actionButton.addEventListener("click", listener);
+  onReset(listener: () => void): void {
+    this.resetButton.addEventListener("click", listener);
   }
 
   setState(state: GameState): void {
     this.stateChip.textContent = state;
     this.stateChip.dataset.state = state;
 
-    if (state === "BASE" || state === "RESULTS") {
-      this.actionButton.disabled = false;
-      this.actionButton.textContent =
-        state === "BASE" ? "Проверить сцену" : "Повторить проверку";
-    } else if (state === "RIDING") {
-      this.actionButton.disabled = true;
-      this.actionButton.textContent = "Fixed-step работает";
-    } else {
-      this.actionButton.disabled = true;
-      this.actionButton.textContent = "Подготовка…";
-    }
+    this.launchPanel.hidden = state !== "BASE" && state !== "AIMING";
+    this.resultsPanel.hidden = state !== "RESULTS";
+    if (state === "BASE") this.launchTitle.textContent = "Потяни героя вниз";
+    if (state === "AIMING")
+      this.launchTitle.textContent = "Отпусти для запуска";
   }
 
-  setMetrics(snapshot: FoundationSnapshot): void {
+  setAim(parameters: LaunchParameters): void {
+    this.powerFill.style.transform = `scaleX(${parameters.power.toFixed(3)})`;
+    const direction =
+      parameters.aim < -0.15
+        ? "влево"
+        : parameters.aim > 0.15
+          ? "вправо"
+          : "прямо";
+    this.aimLabel.textContent = `сила ${Math.round(parameters.power * 100)}% · ${direction}`;
+  }
+
+  setMetrics(snapshot: SledSnapshot): void {
     this.distanceLabel.textContent = snapshot.distanceMeters.toFixed(0);
-    this.speedLabel.textContent = snapshot.speedMetersPerSecond.toFixed(1);
+    this.speedLabel.textContent = snapshot.forwardSpeed.toFixed(1);
+    this.resultDistance.textContent = snapshot.distanceMeters.toFixed(0);
   }
 }
