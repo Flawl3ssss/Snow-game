@@ -240,7 +240,7 @@ describe("SledSimulation", () => {
     expect(takeoffs === 2 || crossedSecondRampAirborne).toBe(true);
   });
 
-  it.each([-5, 0, 5])(
+  it.each([-6.2, -5, 0, 5, 6.2])(
     "clears both ramp lips on the boosted x=%s route",
     (targetX) => {
       const simulation = new SledSimulation();
