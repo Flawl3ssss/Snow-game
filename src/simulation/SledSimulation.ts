@@ -91,7 +91,13 @@ export class SledSimulation {
       (targetSteer - this.steer) * Math.min(1, steerResponse * safeDt);
 
     const maxLateralSpeed = 2.5 + this.forwardSpeed * 0.095;
-    const targetLateralSpeed = this.steer * maxLateralSpeed;
+    const remainingEdgeRoom = TRACK_HALF_WIDTH - Math.abs(this.x);
+    const steeringOutward = this.x * this.steer > 0;
+    const edgeSteeringFactor = steeringOutward
+      ? clamp(remainingEdgeRoom / 2.25, 0, 1)
+      : 1;
+    const targetLateralSpeed =
+      this.steer * maxLateralSpeed * edgeSteeringFactor;
     const lateralResponse = 4.8;
     this.lateralSpeed +=
       (targetLateralSpeed - this.lateralSpeed) *
@@ -109,9 +115,13 @@ export class SledSimulation {
     this.x += this.lateralSpeed * safeDt;
     this.z += this.forwardSpeed * safeDt;
 
-    if (Math.abs(this.x) > TRACK_HALF_WIDTH) {
-      this.x = clamp(this.x, -TRACK_HALF_WIDTH, TRACK_HALF_WIDTH);
-      this.lateralSpeed *= -0.18;
+    if (this.x >= TRACK_HALF_WIDTH) {
+      this.x = TRACK_HALF_WIDTH;
+      this.lateralSpeed = Math.min(0, this.lateralSpeed);
+      this.forwardSpeed *= 0.965;
+    } else if (this.x <= -TRACK_HALF_WIDTH) {
+      this.x = -TRACK_HALF_WIDTH;
+      this.lateralSpeed = Math.max(0, this.lateralSpeed);
       this.forwardSpeed *= 0.965;
     }
 
