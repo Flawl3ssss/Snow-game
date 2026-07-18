@@ -12,6 +12,7 @@ import type {
 export class GameShell {
   readonly canvas: HTMLCanvasElement;
   readonly sceneLayer: HTMLDivElement;
+  private readonly speedVignette: HTMLDivElement;
   private readonly stateChip: HTMLDivElement;
   private readonly distanceLabel: HTMLSpanElement;
   private readonly speedLabel: HTMLSpanElement;
@@ -38,6 +39,7 @@ export class GameShell {
       <main class="game-shell">
         <div class="scene-layer">
           <canvas class="game-canvas" aria-label="Трёхмерная снежная трасса"></canvas>
+          <div class="speed-vignette" aria-hidden="true"></div>
         </div>
         <section class="hud" aria-live="polite">
           <div class="hud__top">
@@ -82,6 +84,7 @@ export class GameShell {
 
     const canvas = root.querySelector<HTMLCanvasElement>(".game-canvas");
     const sceneLayer = root.querySelector<HTMLDivElement>(".scene-layer");
+    const speedVignette = root.querySelector<HTMLDivElement>(".speed-vignette");
     const stateChip = root.querySelector<HTMLDivElement>(".state-chip");
     const distanceLabel = root.querySelector<HTMLSpanElement>(
       '[data-testid="distance"]',
@@ -142,6 +145,7 @@ export class GameShell {
     if (
       !canvas ||
       !sceneLayer ||
+      !speedVignette ||
       !stateChip ||
       !distanceLabel ||
       !speedLabel ||
@@ -168,6 +172,7 @@ export class GameShell {
 
     this.canvas = canvas;
     this.sceneLayer = sceneLayer;
+    this.speedVignette = speedVignette;
     this.stateChip = stateChip;
     this.distanceLabel = distanceLabel;
     this.speedLabel = speedLabel;
@@ -229,6 +234,15 @@ export class GameShell {
     this.distanceLabel.textContent = snapshot.distanceMeters.toFixed(0);
     this.speedLabel.textContent = snapshot.forwardSpeed.toFixed(1);
     this.resultDistance.textContent = snapshot.distanceMeters.toFixed(0);
+    const speedIntensity = Math.max(
+      0,
+      Math.min(1, (snapshot.forwardSpeed - 13) / 15),
+    );
+    this.speedVignette.style.setProperty(
+      "--speed-intensity",
+      speedIntensity.toFixed(3),
+    );
+    this.speedVignette.classList.toggle("is-airborne", !snapshot.grounded);
   }
 
   setDynamics(dynamics: RunDynamicsSnapshot, bankCoins: number): void {
