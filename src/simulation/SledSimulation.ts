@@ -43,10 +43,15 @@ export const SLED_PHYSICS = {
   distanceSnowResistance: 0.0048,
   aerodynamicDrag: 0.0018,
   airDragPerSecond: 0.035,
-  activeLateralResponse: 4.8,
+  activeLateralResponse: 7.2,
   neutralLateralResponse: 0.62,
+  groundSteerResponse: 12.5,
+  airSteerResponse: 4.2,
+  airSteerAcceleration: 3.4,
+  maximumAirLateralSpeed: 4.8,
   takeoffGravityRatio: 0.72,
   minimumTakeoffVerticalSpeed: 1,
+  minimumRampTakeoffVerticalSpeed: 2.2,
   landingLossPerImpact: 0.014,
   maximumLandingLoss: 0.24,
   stopSpeed: 0.55,
@@ -55,6 +60,11 @@ export const SLED_PHYSICS = {
 
 const DERIVATIVE_STEP = 0.2;
 const CURVATURE_STEP = 0.35;
+
+const RAMP_TAKEOFF_ZONES = [
+  { start: 68.5, end: 71.2, sample: 69 },
+  { start: 134.5, end: 137.2, sample: 135.5 },
+] as const;
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
@@ -100,6 +110,19 @@ export const surfaceCurvatureZAt = (x: number, z: number): number =>
     2 * surfaceHeightAt(x, z) +
     surfaceHeightAt(x, z - CURVATURE_STEP)) /
   (CURVATURE_STEP * CURVATURE_STEP);
+
+const sweptRampTakeoffSlope = (
+  x: number,
+  startZ: number,
+  endZ: number,
+): number | undefined => {
+  if (rampLateralMask(x) < 0.3) return undefined;
+  for (const zone of RAMP_TAKEOFF_ZONES) {
+    if (endZ < zone.start || startZ > zone.end) continue;
+    return Math.max(0.08, surfaceSlopeZAt(x, zone.sample));
+  }
+  return undefined;
+};
 
 export class SledSimulation {
   private elapsedSeconds = 0;
@@ -194,7 +217,7 @@ export class SledSimulation {
     this.updateSteer(safeDt, targetSteer);
 
     if (this.grounded) this.updateGrounded(safeDt, targetSteer);
-    else this.updateAirborne(safeDt);
+    else this.updateAirborne(safeDt, targetSteer);
 
     this.headingRadians = Math.atan2(
       this.lateralSpeed,
@@ -205,10 +228,10 @@ export class SledSimulation {
   }
 
   private updateSteer(dt: number, targetSteer: number): void {
-    const steerResponse = this.grounded ? 8.5 : 2.2;
-    const airborneTarget = this.grounded ? targetSteer : 0;
-    this.steer +=
-      (airborneTarget - this.steer) * Math.min(1, steerResponse * dt);
+    const steerResponse = this.grounded
+      ? SLED_PHYSICS.groundSteerResponse
+      : SLED_PHYSICS.airSteerResponse;
+    this.steer += (targetSteer - this.steer) * Math.min(1, steerResponse * dt);
   }
 
   private updateGrounded(dt: number, targetSteer: number): void {
@@ -240,7 +263,9 @@ export class SledSimulation {
 
     const requiredVerticalAcceleration =
       curvature * this.forwardSpeed * this.forwardSpeed;
-    const shouldTakeOff =
+    const projectedZ = this.z + this.forwardSpeed * dt;
+    const rampTakeoffSlope = sweptRampTakeoffSlope(this.x, this.z, projectedZ);
+    const naturalTakeoff =
       this.landingCooldownSeconds <= 0 &&
       this.z > 8 &&
       this.forwardSpeed > 6 &&
@@ -248,12 +273,22 @@ export class SledSimulation {
       this.forwardSpeed * slope >= SLED_PHYSICS.minimumTakeoffVerticalSpeed &&
       requiredVerticalAcceleration <
         -SLED_PHYSICS.gravity * SLED_PHYSICS.takeoffGravityRatio;
+    const guaranteedRampTakeoff =
+      this.landingCooldownSeconds <= 0 &&
+      this.forwardSpeed > 7 &&
+      rampTakeoffSlope !== undefined;
 
-    if (shouldTakeOff) {
+    if (naturalTakeoff || guaranteedRampTakeoff) {
       this.grounded = false;
-      this.verticalSpeed = this.forwardSpeed * slope;
+      const launchSlope = Math.max(slope, rampTakeoffSlope ?? slope);
+      this.verticalSpeed = Math.max(
+        guaranteedRampTakeoff
+          ? SLED_PHYSICS.minimumRampTakeoffVerticalSpeed
+          : SLED_PHYSICS.minimumTakeoffVerticalSpeed,
+        this.forwardSpeed * launchSlope,
+      );
       this.height += 0.025;
-      this.updateAirborne(dt);
+      this.updateAirborne(dt, targetSteer);
       return;
     }
 
@@ -272,13 +307,13 @@ export class SledSimulation {
   }
 
   private updateLateralGroundSpeed(dt: number, targetSteer: number): void {
-    const maxLateralSpeed = 2.5 + this.forwardSpeed * 0.095;
+    const maxLateralSpeed = 3 + this.forwardSpeed * 0.115;
     const remainingEdgeRoom = SLED_PHYSICS.trackHalfWidth - Math.abs(this.x);
     const steeringOutward = this.x * this.steer > 0;
     const edgeSteeringFactor = steeringOutward
       ? clamp(remainingEdgeRoom / 2.25, 0, 1)
       : 1;
-    const speedTraction = clamp(1.15 - this.forwardSpeed * 0.012, 0.72, 1);
+    const speedTraction = clamp(1.18 - this.forwardSpeed * 0.01, 0.78, 1);
     const targetLateralSpeed =
       this.steer * maxLateralSpeed * edgeSteeringFactor * speedTraction;
     const isActivelySteering = Math.abs(targetSteer) > 0.025;
@@ -290,11 +325,20 @@ export class SledSimulation {
       Math.min(1, lateralResponse * dt);
   }
 
-  private updateAirborne(dt: number): void {
+  private updateAirborne(dt: number, targetSteer: number): void {
     this.airborneSeconds += dt;
     const dragFactor = Math.max(0, 1 - SLED_PHYSICS.airDragPerSecond * dt);
     this.forwardSpeed *= dragFactor;
     this.lateralSpeed *= dragFactor;
+    const airControl =
+      targetSteer *
+      SLED_PHYSICS.airSteerAcceleration *
+      clamp(this.forwardSpeed / 18, 0.65, 1.25);
+    this.lateralSpeed = clamp(
+      this.lateralSpeed + airControl * dt,
+      -SLED_PHYSICS.maximumAirLateralSpeed,
+      SLED_PHYSICS.maximumAirLateralSpeed,
+    );
     const nextVerticalSpeed = this.verticalSpeed - SLED_PHYSICS.gravity * dt;
     const nextX = this.x + this.lateralSpeed * dt;
     const nextZ = this.z + this.forwardSpeed * dt;
@@ -317,7 +361,9 @@ export class SledSimulation {
     );
     this.pitchRadians +=
       (flightPitch - this.pitchRadians) * Math.min(1, 5 * dt);
-    this.rollRadians *= Math.max(0, 1 - 2.8 * dt);
+    const targetAirRoll = -this.steer * 0.1;
+    this.rollRadians +=
+      (targetAirRoll - this.rollRadians) * Math.min(1, 2.6 * dt);
 
     if (this.height <= terrainHeight) this.landOnSurface(terrainHeight);
   }
