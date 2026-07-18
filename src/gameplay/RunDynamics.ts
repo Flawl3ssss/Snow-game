@@ -27,8 +27,8 @@ export type RunDynamicsSnapshot = {
 };
 
 export const COURSE_OBJECTS: readonly CourseObject[] = [
-  { id: "c01", kind: "coin", x: -4, z: 18 },
-  { id: "c02", kind: "coin", x: -2, z: 21 },
+  { id: "c01", kind: "coin", x: 0, z: 18 },
+  { id: "c02", kind: "coin", x: 0, z: 21 },
   { id: "c03", kind: "coin", x: 0, z: 24 },
   { id: "c04", kind: "coin", x: 2, z: 27 },
   { id: "c05", kind: "coin", x: 4, z: 30 },
@@ -99,6 +99,11 @@ export class RunDynamics {
 
     for (const object of COURSE_OBJECTS) {
       if (this.consumedIds.has(object.id)) continue;
+      // Course objects sit on the snow. Requiring the whole swept segment to
+      // stay grounded prevents a jump from collecting or hitting objects that
+      // were passed several metres below the sled. This also avoids a false
+      // collision on the single frame that transitions into or out of flight.
+      if (!previous.grounded || !current.grounded) continue;
       if (previous.z > object.z || current.z < object.z) continue;
       const radius =
         object.kind === "boost" ? 2.6 : object.kind === "rock" ? 1.45 : 1.25;

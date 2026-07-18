@@ -43,9 +43,9 @@ export const SLED_PHYSICS = {
   distanceSnowResistance: 0.0048,
   aerodynamicDrag: 0.0018,
   airDragPerSecond: 0.035,
-  activeLateralResponse: 7.2,
+  activeLateralResponse: 9,
   neutralLateralResponse: 0.62,
-  groundSteerResponse: 12.5,
+  groundSteerResponse: 15,
   airSteerResponse: 4.2,
   airSteerAcceleration: 3.4,
   maximumAirLateralSpeed: 4.8,
@@ -61,6 +61,11 @@ export const SLED_PHYSICS = {
 const DERIVATIVE_STEP = 0.2;
 const CURVATURE_STEP = 0.35;
 export const RAMP_PHYSICAL_HALF_WIDTH = 6.4;
+
+export const RAMP_SURFACES = [
+  { start: 58, crest: 72, end: 77, height: 3.4 },
+  { start: 128, crest: 140, end: 145, height: 2.7 },
+] as const;
 
 const RAMP_TAKEOFF_ZONES = [
   { start: 68.5, end: 71.2, sample: 69 },
@@ -96,9 +101,13 @@ export const surfaceHeightAt = (x: number, z: number): number => {
   const longWave = 1.9 * (Math.sin(z * 0.06 + 2.2) - Math.sin(2.2));
   const shortWave = 0.45 * (Math.sin(z * 0.145 + 1.5) - Math.sin(1.5));
   const rampMask = rampLateralMask(x);
-  const firstRamp = rampHeightAt(z, 58, 72, 77, 3.4) * rampMask;
-  const secondRamp = rampHeightAt(z, 128, 140, 145, 2.7) * rampMask;
-  return baseDescent + longWave + shortWave + edgeLift + firstRamp + secondRamp;
+  const rampHeight = RAMP_SURFACES.reduce(
+    (height, ramp) =>
+      height +
+      rampHeightAt(z, ramp.start, ramp.crest, ramp.end, ramp.height) * rampMask,
+    0,
+  );
+  return baseDescent + longWave + shortWave + edgeLift + rampHeight;
 };
 
 export const surfaceSlopeZAt = (x: number, z: number): number =>
@@ -334,15 +343,22 @@ export class SledSimulation {
   }
 
   private updateLateralGroundSpeed(dt: number, targetSteer: number): void {
-    const maxLateralSpeed = 3 + this.forwardSpeed * 0.115;
+    const maxLateralSpeed = 3.4 + this.forwardSpeed * 0.13;
     const remainingEdgeRoom = SLED_PHYSICS.trackHalfWidth - Math.abs(this.x);
     const steeringOutward = this.x * this.steer > 0;
     const edgeSteeringFactor = steeringOutward
       ? clamp(remainingEdgeRoom / 2.25, 0, 1)
       : 1;
-    const speedTraction = clamp(1.18 - this.forwardSpeed * 0.01, 0.78, 1);
+    const speedTraction = clamp(1.2 - this.forwardSpeed * 0.009, 0.82, 1);
+    // Steering redirects forward momentum; it must never become a sideways
+    // motor after the sled has effectively stopped.
+    const movementControl = smoothstep(this.forwardSpeed / 2.4);
     const targetLateralSpeed =
-      this.steer * maxLateralSpeed * edgeSteeringFactor * speedTraction;
+      this.steer *
+      maxLateralSpeed *
+      edgeSteeringFactor *
+      speedTraction *
+      movementControl;
     const isActivelySteering = Math.abs(targetSteer) > 0.025;
     const lateralResponse = isActivelySteering
       ? SLED_PHYSICS.activeLateralResponse

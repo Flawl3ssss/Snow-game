@@ -50,4 +50,40 @@ describe("RunDynamics", () => {
     expect(events[0]?.type).toBe("airtime");
     expect(dynamics.snapshot.score).toBeGreaterThan(70);
   });
+
+  it("cannot collect ground objects or hit rocks while airborne", () => {
+    const dynamics = new RunDynamics();
+
+    expect(
+      dynamics.update(frame(0, 23, false), frame(0, 25, false), 1 / 60),
+    ).toEqual([]);
+    expect(
+      dynamics.update(frame(4.5, 37, false), frame(4.5, 39, false), 1 / 60),
+    ).toEqual([]);
+    expect(
+      dynamics.update(frame(-5, 47, false), frame(-5, 49, false), 1 / 60),
+    ).toEqual([]);
+    expect(dynamics.snapshot.consumedIds.size).toBe(0);
+
+    expect(dynamics.update(frame(0, 23), frame(0, 25), 1 / 60)[0]?.type).toBe(
+      "coin",
+    );
+    expect(
+      dynamics.update(frame(4.5, 37), frame(4.5, 39), 1 / 60)[0]?.type,
+    ).toBe("rock");
+    expect(dynamics.update(frame(-5, 47), frame(-5, 49), 1 / 60)[0]?.type).toBe(
+      "boost",
+    );
+  });
+
+  it("does not trigger a ground object across takeoff or landing frames", () => {
+    const dynamics = new RunDynamics();
+    expect(dynamics.update(frame(0, 23), frame(0, 25, false), 1 / 60)).toEqual(
+      [],
+    );
+    expect(dynamics.update(frame(0, 23, false), frame(0, 25), 1 / 60)).toEqual(
+      [],
+    );
+    expect(dynamics.snapshot.consumedIds.has("c03")).toBe(false);
+  });
 });

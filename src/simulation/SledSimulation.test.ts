@@ -288,12 +288,41 @@ describe("SledSimulation", () => {
     for (let tick = 0; tick < 30; tick += 1) {
       simulation.update(1 / 60, { steer: 1 });
     }
-    expect(simulation.snapshot.lateralSpeed).toBeGreaterThan(3);
+    expect(simulation.snapshot.lateralSpeed).toBeGreaterThan(4);
 
     for (let tick = 0; tick < 36; tick += 1) {
       simulation.update(1 / 60, { steer: -1 });
     }
-    expect(simulation.snapshot.lateralSpeed).toBeLessThan(-2);
+    expect(simulation.snapshot.lateralSpeed).toBeLessThan(-3);
+  });
+
+  it("cannot use steering as sideways propulsion when forward speed reaches zero", () => {
+    const simulation = new SledSimulation();
+    simulation.launch({ power: 0.25, aim: 0 });
+    let reachedStoppingRange = false;
+
+    for (let tick = 0; tick < 60 * 55; tick += 1) {
+      simulation.update(1 / 60, { steer: 0 });
+      const snapshot = simulation.snapshot;
+      if (
+        snapshot.moving &&
+        snapshot.grounded &&
+        snapshot.forwardSpeed < 0.25
+      ) {
+        reachedStoppingRange = true;
+        break;
+      }
+    }
+
+    expect(reachedStoppingRange).toBe(true);
+    const stoppingX = simulation.snapshot.x;
+    for (let tick = 0; tick < 60 * 3; tick += 1) {
+      simulation.update(1 / 60, { steer: 1 });
+    }
+
+    expect(simulation.snapshot.stopped).toBe(true);
+    expect(Math.abs(simulation.snapshot.x - stoppingX)).toBeLessThan(0.12);
+    expect(simulation.snapshot.lateralSpeed).toBe(0);
   });
 
   it("allows weaker but meaningful steering control while airborne", () => {
