@@ -165,9 +165,12 @@ describe("20-scenario sled physics playtest", () => {
     ).toBe(true);
   });
 
-  it("17 low speed does not create a near-zero micro-hop", () => {
+  it("17 lower speed still creates two deliberate ramp takeoffs", () => {
     const result = run({ power: 0.22, seconds: 12 });
-    expect(result.takeoffs).toHaveLength(1);
+    expect(result.takeoffs).toHaveLength(2);
+    expect(result.takeoffs[1]?.verticalSpeed ?? 0).toBeGreaterThanOrEqual(
+      SLED_PHYSICS.minimumRampTakeoffVerticalSpeed - 0.2,
+    );
   });
 
   it("18 an off-center route bypasses the central ramps", () => {
