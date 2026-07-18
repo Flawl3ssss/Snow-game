@@ -39,3 +39,4 @@ G1 — grey movement prototype.
 - The required browser action client was invoked, but this sandbox has no Playwright Chromium executable. GitHub Actions remains the browser evidence environment.
 - First CI browser pass succeeded, but manual screenshot review caught camera lag clipping the rider on mobile and an intrusive debug overlay. Camera snapping for deterministic time jumps and opt-in `?debug` diagnostics were added; evidence must be regenerated.
 - Second evidence review showed the cinematic lateral camera offset could still place the rider outside a narrow mobile frame at the track boundary. G1 now centers the camera on the rider; evidence must be regenerated once more.
+- GitHub Pages deployment workflow added for a one-click playable build. It publishes both the current G1 branch and future `main` updates using the `/Snow-game/` asset base path.
