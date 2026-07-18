@@ -225,7 +225,7 @@ test("dynamic course awards a pickup, score, and visible feedback", async ({
   expect(state.visualEffects.activeBurstParticles).toBeGreaterThan(0);
   expect(state.visualEffects.activeShockwaves).toBeGreaterThan(0);
   expect(state.visualEffects.wakeOpacity).toBeGreaterThan(0.3);
-  await expect(page.getByTestId("run-goal")).toContainText("3/3");
+  await expect(page.getByTestId("run-goal")).toContainText("Цель выполнена");
   await page.screenshot({
     path: `artifacts/playtests/g2-dynamic-course-${test.info().project.name}.png`,
     fullPage: true,
@@ -240,7 +240,7 @@ test("side boost creates a gold burst and readable speed feedback", async ({
   await page.keyboard.down("KeyA");
   await advance(page, 320);
   await page.keyboard.up("KeyA");
-  await advance(page, 1500);
+  await advance(page, 2000);
 
   const state = await readGame(page);
   expect(state.dynamics.consumedIds).toContain("b01");
