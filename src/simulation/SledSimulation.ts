@@ -7,6 +7,11 @@ export type LaunchParameters = {
   aim: number;
 };
 
+export type SledUpgradeTuning = {
+  launchSpeedBonus: number;
+  snowResistanceMultiplier: number;
+};
+
 export type SledSnapshot = {
   elapsedSeconds: number;
   distanceMeters: number;
@@ -116,6 +121,17 @@ export class SledSimulation {
   private moving = false;
   private stopped = false;
   private belowStopSeconds = 0;
+  private launchSpeedBonus = 0;
+  private snowResistanceMultiplier = 1;
+
+  configureUpgrades(tuning: SledUpgradeTuning): void {
+    this.launchSpeedBonus = clamp(tuning.launchSpeedBonus, 0, 6);
+    this.snowResistanceMultiplier = clamp(
+      tuning.snowResistanceMultiplier,
+      0.65,
+      1,
+    );
+  }
 
   launch(parameters: LaunchParameters): void {
     const power = clamp(parameters.power, 0, 1);
@@ -123,7 +139,8 @@ export class SledSimulation {
     const launchSpeed =
       SLED_PHYSICS.minimumLaunchSpeed +
       (SLED_PHYSICS.maximumLaunchSpeed - SLED_PHYSICS.minimumLaunchSpeed) *
-        power;
+        power +
+      this.launchSpeedBonus;
     const launchHeading = aim * SLED_PHYSICS.maximumAimRadians;
 
     this.elapsedSeconds = 0;
@@ -214,7 +231,10 @@ export class SledSimulation {
     const steeringLoss =
       0.022 * Math.pow(Math.abs(this.steer), 1.4) * this.forwardSpeed;
     const acceleration =
-      gravityAlongSlope - snowResistance - aerodynamicDrag - steeringLoss;
+      gravityAlongSlope -
+      snowResistance * this.snowResistanceMultiplier -
+      aerodynamicDrag -
+      steeringLoss;
 
     this.forwardSpeed = Math.max(0, this.forwardSpeed + acceleration * dt);
 
@@ -319,6 +339,20 @@ export class SledSimulation {
     this.grounded = true;
     this.airborneSeconds = 0;
     this.landingCooldownSeconds = 0.22;
+  }
+
+  applyBoost(speedGain: number): void {
+    if (!this.moving || this.stopped) return;
+    this.forwardSpeed = Math.min(
+      31,
+      this.forwardSpeed + Math.max(0, speedGain),
+    );
+  }
+
+  applyObstacleHit(): void {
+    if (!this.moving || this.stopped) return;
+    this.forwardSpeed *= 0.72;
+    this.lateralSpeed *= 0.45;
   }
 
   private resolveTrackEdges(): void {
