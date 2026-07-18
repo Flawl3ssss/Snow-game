@@ -9,6 +9,7 @@ import {
   Group,
   HemisphereLight,
   InstancedMesh,
+  LatheGeometry,
   MathUtils,
   Mesh,
   MeshStandardMaterial,
@@ -19,6 +20,7 @@ import {
   Scene,
   SphereGeometry,
   SRGBColorSpace,
+  Vector2,
   Vector3,
   WebGLRenderer,
 } from "three";
@@ -420,28 +422,33 @@ export class SnowScene {
 
   private createScenery(): void {
     const trunkGeometry = new CylinderGeometry(1, 1, 1, 12, 2);
-    // These meshes live outside the playable lane. Fourteen radial segments
-    // remain visually smooth at their camera size without wasting fill time in
-    // the software-WebGL evidence runner.
-    const crownGeometry = new SphereGeometry(1, 14, 10);
+    // A single revolved profile gives every fir a layered, organic silhouette
+    // without multiplying draw calls. Separate snow clumps keep the crown
+    // readable against pale mountains and avoid the old topiary-ball look.
+    const crownGeometry = new LatheGeometry(
+      [
+        new Vector2(0.05, 1.2),
+        new Vector2(0.34, 1.02),
+        new Vector2(0.2, 0.76),
+        new Vector2(0.72, 0.56),
+        new Vector2(0.42, 0.28),
+        new Vector2(0.98, 0.06),
+        new Vector2(0.58, -0.25),
+        new Vector2(1.18, -0.52),
+        new Vector2(0.76, -0.78),
+        new Vector2(0.08, -0.9),
+      ],
+      20,
+    );
+    const snowClumpGeometry = new SphereGeometry(1, 12, 8);
     const mountainGeometry = new ConeGeometry(1, 1, 24, 5);
     const trunks = new InstancedMesh(trunkGeometry, this.materials.bark, 46);
-    const lowerCrowns = new InstancedMesh(
-      crownGeometry,
-      this.materials.pine,
-      46,
+    const crowns = new InstancedMesh(crownGeometry, this.materials.pine, 46);
+    const snowClumps = new InstancedMesh(
+      snowClumpGeometry,
+      this.materials.snow,
+      46 * 3,
     );
-    const middleCrowns = new InstancedMesh(
-      crownGeometry,
-      this.materials.pineLight,
-      46,
-    );
-    const upperCrowns = new InstancedMesh(
-      crownGeometry,
-      this.materials.pine,
-      46,
-    );
-    const snowCaps = new InstancedMesh(crownGeometry, this.materials.snow, 46);
     const dummy = new Object3D();
 
     for (let index = 0; index < 46; index += 1) {
@@ -464,55 +471,38 @@ export class SnowScene {
         rotation,
       );
       this.setSceneryInstance(
-        lowerCrowns,
+        crowns,
         dummy,
         index,
         x,
-        base + 2.85 * scale,
+        base + 3.65 * scale,
         z,
-        2.0 * scale,
-        1.5 * scale,
-        1.82 * scale,
+        2.05 * scale,
+        3.05 * scale,
+        1.88 * scale,
         rotation,
       );
-      this.setSceneryInstance(
-        middleCrowns,
-        dummy,
-        index,
-        x,
-        base + 4.15 * scale,
-        z,
-        1.58 * scale,
-        1.4 * scale,
-        1.46 * scale,
-        rotation + 0.2,
-      );
-      this.setSceneryInstance(
-        upperCrowns,
-        dummy,
-        index,
-        x,
-        base + 5.25 * scale,
-        z,
-        1.12 * scale,
-        1.28 * scale,
-        1.04 * scale,
-        rotation - 0.15,
-      );
-      this.setSceneryInstance(
-        snowCaps,
-        dummy,
-        index,
-        x,
-        base + 5.83 * scale,
-        z,
-        0.83 * scale,
-        0.3 * scale,
-        0.78 * scale,
-        rotation,
-      );
+      const clumps = [
+        { y: 5.92, width: 0.68, depth: 0.6 },
+        { y: 4.82, width: 1.05, depth: 0.82 },
+        { y: 3.5, width: 1.42, depth: 1.05 },
+      ];
+      clumps.forEach((clump, clumpIndex) => {
+        this.setSceneryInstance(
+          snowClumps,
+          dummy,
+          index * 3 + clumpIndex,
+          x,
+          base + clump.y * scale,
+          z - 0.06 * clumpIndex,
+          clump.width * scale,
+          0.16 * scale,
+          clump.depth * scale,
+          rotation + clumpIndex * 0.17,
+        );
+      });
     }
-    this.scene.add(trunks, lowerCrowns, middleCrowns, upperCrowns, snowCaps);
+    this.scene.add(trunks, crowns, snowClumps);
 
     const mountains = new InstancedMesh(
       mountainGeometry,

@@ -1,11 +1,13 @@
 import {
   CatmullRomCurve3,
   CylinderGeometry,
+  ExtrudeGeometry,
   Group,
   IcosahedronGeometry,
   MathUtils,
   Mesh,
   MeshStandardMaterial,
+  Shape,
   SphereGeometry,
   TorusGeometry,
   TubeGeometry,
@@ -115,13 +117,28 @@ export const createBoostPadModel = (materials: PremiumMaterials): Group => {
   const root = new Group();
   const base = roundedBar(4.8, 0.18, 3.2, 0.24, materials.gold);
   root.add(base);
+  const chevronShape = new Shape();
+  chevronShape.moveTo(-0.85, -0.32);
+  chevronShape.lineTo(0, 0.22);
+  chevronShape.lineTo(0.85, -0.32);
+  chevronShape.lineTo(0.85, 0.08);
+  chevronShape.lineTo(0, 0.65);
+  chevronShape.lineTo(-0.85, 0.08);
+  chevronShape.closePath();
   for (const z of [-0.68, 0, 0.68]) {
-    for (const side of [-1, 1]) {
-      const chevron = roundedBar(0.22, 0.08, 1.15, 0.08, materials.snow);
-      chevron.position.set(side * 0.36, 0.14, z);
-      chevron.rotation.y = side * 0.62;
-      root.add(chevron);
-    }
+    const chevron = new Mesh(
+      new ExtrudeGeometry(chevronShape, {
+        depth: 0.07,
+        bevelEnabled: true,
+        bevelSegments: 2,
+        bevelSize: 0.045,
+        bevelThickness: 0.025,
+      }),
+      materials.snow,
+    );
+    chevron.rotation.x = Math.PI / 2;
+    chevron.position.set(0, 0.16, z);
+    root.add(chevron);
   }
   return collapseModel(root, [materials.gold, materials.snow]);
 };
@@ -195,11 +212,11 @@ export const createDirectionSign = (
   const board = roundedBar(2.15, 0.92, 0.18, 0.12, materials.wood);
   board.position.y = 2.15;
   const shaft = roundedBar(0.82, 0.12, 0.06, 0.04, materials.snow);
-  shaft.position.set(-direction * 0.08, 2.15, 0.13);
+  shaft.position.set(-direction * 0.08, 2.15, -0.13);
   shaft.rotation.z = direction < 0 ? 0 : Math.PI;
   const head = new Mesh(new CylinderGeometry(0, 0.31, 0.58, 3), materials.snow);
   head.rotation.set(0, 0, direction * Math.PI * 0.5);
-  head.position.set(direction * 0.46, 2.15, 0.13);
+  head.position.set(direction * 0.46, 2.15, -0.13);
   root.add(pole, board, shaft, head);
   return collapseModel(root, [materials.wood, materials.snow]);
 };

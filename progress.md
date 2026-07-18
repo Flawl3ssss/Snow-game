@@ -114,3 +114,9 @@ G5 — premium smooth stylized 3D production models.
   snowflake uses one draw call instead of 16, boosts use two instead of seven,
   and signs, fences, and slingshot posts use two each. Expensive physical
   shader features were removed where they did not survive gameplay distance.
+- Manual review of the optimized evidence rejected three remaining art issues:
+  stacked-sphere firs, bracket-like boost marks, and direction arrows facing
+  away from the chase camera. Firs now use a smooth revolved branch profile
+  with three snow shelves, boost pads use filled beveled chevrons, and signs
+  present their arrows toward the player. The tree pass also drops two shared
+  draw-call batches compared with the rejected version.
