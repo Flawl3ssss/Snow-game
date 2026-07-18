@@ -51,7 +51,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: g0-playtest-evidence
+          name: g1-playtest-evidence
           path: |
             artifacts/playtests/
             playwright-report/

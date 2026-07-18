@@ -1,11 +1,11 @@
 import type { GameState } from "../app/GameStateMachine";
-import type { FoundationSnapshot } from "../simulation/FoundationSimulation";
 import type { FixedStepMetrics } from "../simulation/FixedStepLoop";
+import type { SledSnapshot } from "../simulation/SledSimulation";
 
 type DebugFrame = {
   fps: number;
   state: GameState;
-  simulation: FoundationSnapshot;
+  simulation: SledSnapshot;
   fixed: FixedStepMetrics;
   renderSize: string;
 };
@@ -18,6 +18,9 @@ export class DebugOverlay {
     this.element.className = "debug-overlay";
     this.element.dataset.testid = "debug-overlay";
     this.element.setAttribute("aria-hidden", "true");
+    this.element.hidden = !new URLSearchParams(window.location.search).has(
+      "debug",
+    );
     parent.append(this.element);
   }
 
@@ -26,8 +29,9 @@ export class DebugOverlay {
       `state ${frame.state}`,
       `fps ${frame.fps.toFixed(0)}`,
       `fixed ${frame.fixed.fixedSteps} alpha ${frame.fixed.interpolationAlpha.toFixed(2)}`,
-      `speed ${frame.simulation.speedMetersPerSecond.toFixed(1)} m/s`,
+      `speed ${frame.simulation.forwardSpeed.toFixed(1)} m/s`,
       `distance ${frame.simulation.distanceMeters.toFixed(1)} m`,
+      `x ${frame.simulation.x.toFixed(2)} steer ${frame.simulation.steer.toFixed(2)}`,
       `render ${frame.renderSize}`,
     ].join("\n");
   }

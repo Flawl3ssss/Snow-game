@@ -4,9 +4,9 @@ Production-oriented mobile 3D web game prototype based on the Snow Sling GDD.
 
 ## Current stage
 
-`G0 — Foundation`: architecture, deterministic fixed-step loop, platform boundary, diagnostics, automated checks, and first browser-safe scene.
+`G1 — Movement prototype`: pull/aim/release launch, deterministic sled movement, direct steering, natural speed decay, stable stop, and results loop.
 
-The visible rider and sled are temporary primitives. Gameplay tuning begins in `G1`; they are not production art.
+The visible rider, sled, slingshot, and environment are temporary primitives. G1 validates control feel and physics before production art or economy work.
 
 ## Commands
 
@@ -31,6 +31,7 @@ npx playwright install chromium
 
 - `src/app` — application lifecycle and state machine
 - `src/simulation` — renderer-independent fixed-step state
+- `src/input` — pointer and keyboard gesture translation
 - `src/render` — Three.js scene and camera
 - `src/platform` — platform abstraction and local implementation
 - `src/ui` — DOM HUD and state surfaces

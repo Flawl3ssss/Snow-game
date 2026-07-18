@@ -1,0 +1,68 @@
+import { describe, expect, it } from "vitest";
+import { SledSimulation } from "./SledSimulation";
+
+type InputEvent = { atSeconds: number; steer: number };
+
+const simulate = (events: InputEvent[], durationSeconds: number) => {
+  const simulation = new SledSimulation();
+  simulation.launch({ power: 0.92, aim: 0 });
+  let eventIndex = 0;
+  let steer = 0;
+
+  for (let tick = 0; tick < durationSeconds * 60; tick += 1) {
+    const time = tick / 60;
+    let event = events[eventIndex];
+    while (event && event.atSeconds <= time) {
+      steer = event.steer;
+      eventIndex += 1;
+      event = events[eventIndex];
+    }
+    simulation.update(1 / 60, { steer });
+  }
+
+  return simulation.snapshot;
+};
+
+describe("SledSimulation", () => {
+  it("replays the same input tape deterministically", () => {
+    const tape = [
+      { atSeconds: 0.5, steer: 0.8 },
+      { atSeconds: 1.4, steer: -0.45 },
+      { atSeconds: 2.1, steer: 0 },
+    ];
+    expect(simulate(tape, 8)).toEqual(simulate(tape, 8));
+  });
+
+  it("moves right only after right steering input", () => {
+    const neutral = simulate([], 2);
+    const right = simulate([{ atSeconds: 0, steer: 1 }], 2);
+    const left = simulate([{ atSeconds: 0, steer: -1 }], 2);
+    expect(neutral.x).toBeCloseTo(0, 8);
+    expect(right.x).toBeGreaterThan(4);
+    expect(left.x).toBeLessThan(-4);
+  });
+
+  it("does not gain a hidden target-directed lateral velocity", () => {
+    const snapshot = simulate([{ atSeconds: 0, steer: -0.2 }], 1.5);
+    expect(snapshot.x).toBeLessThan(0);
+    expect(snapshot.lateralSpeed).toBeLessThan(0);
+  });
+
+  it("slows down and reaches a stable stopped state", () => {
+    const snapshot = simulate([], 45);
+    expect(snapshot.stopped).toBe(true);
+    expect(snapshot.forwardSpeed).toBe(0);
+    expect(snapshot.distanceMeters).toBeGreaterThan(120);
+    expect(snapshot.distanceMeters).toBeLessThan(350);
+  });
+
+  it("applies launch aim without exceeding the track boundary", () => {
+    const simulation = new SledSimulation();
+    simulation.launch({ power: 1, aim: 1 });
+    for (let tick = 0; tick < 60 * 15; tick += 1) {
+      simulation.update(1 / 60, { steer: 0 });
+    }
+    expect(simulation.snapshot.x).toBeLessThanOrEqual(13.5);
+    expect(Number.isFinite(simulation.snapshot.headingRadians)).toBe(true);
+  });
+});

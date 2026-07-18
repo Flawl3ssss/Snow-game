@@ -139,8 +139,8 @@ button {
   font-weight: 750;
 }
 
-.foundation-card {
-  pointer-events: auto;
+.launch-panel,
+.results-panel {
   width: min(100%, 420px);
   margin: auto auto 0;
   padding: 17px;
@@ -155,24 +155,73 @@ button {
   backdrop-filter: blur(14px);
 }
 
-.foundation-card__eyebrow {
+.launch-panel {
+  pointer-events: none;
+}
+
+.results-panel {
+  pointer-events: auto;
+}
+
+.results-panel[hidden],
+.launch-panel[hidden] {
+  display: none;
+}
+
+.panel-eyebrow {
   color: #2d8aa8;
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.12em;
 }
 
-.foundation-card h1 {
+.launch-panel h1,
+.results-panel h2 {
   margin: 6px 0;
   font-size: clamp(21px, 6vw, 28px);
   line-height: 1.05;
 }
 
-.foundation-card p {
+.launch-panel p,
+.results-panel p {
   margin: 0 0 14px;
   color: #42697d;
   font-size: 13px;
   line-height: 1.35;
+}
+
+.power-meter {
+  height: 12px;
+  overflow: hidden;
+  border: 2px solid rgba(38, 105, 130, 0.2);
+  border-radius: 999px;
+  background: rgba(27, 81, 104, 0.12);
+}
+
+.power-meter__fill {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #42b9d8, #ffd166 58%, #ef5477);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 40ms linear;
+}
+
+.aim-label {
+  display: block;
+  margin-top: 7px;
+  color: #296982;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.results-panel h2 strong {
+  color: #ed5574;
+  font-size: 1.35em;
 }
 
 .primary-action {
@@ -226,19 +275,22 @@ button {
 }
 
 @media (min-width: 760px) {
-  .foundation-card {
+  .launch-panel,
+  .results-panel {
     margin-right: 24px;
     margin-bottom: 24px;
   }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
-  .foundation-card {
+  .launch-panel,
+  .results-panel {
     width: min(48vw, 420px);
     margin-right: 0;
   }
 
-  .foundation-card p {
+  .launch-panel p,
+  .results-panel p {
     display: none;
   }
 }
