@@ -1,14 +1,19 @@
 import {
-  BoxGeometry,
+  CatmullRomCurve3,
+  CapsuleGeometry,
   ConeGeometry,
   CylinderGeometry,
   Group,
   MathUtils,
   Mesh,
+  MeshPhysicalMaterial,
   MeshStandardMaterial,
   SphereGeometry,
   TorusGeometry,
+  TubeGeometry,
+  Vector3,
 } from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { GameState } from "../app/GameStateMachine";
 import type {
   LaunchParameters,
@@ -73,32 +78,38 @@ export class PenguinRider {
   private readonly scarfTail = new Group();
 
   constructor() {
-    const navy = new MeshStandardMaterial({
+    const navy = new MeshPhysicalMaterial({
       color: 0x17324a,
-      roughness: 0.82,
+      roughness: 0.64,
+      clearcoat: 0.12,
+      clearcoatRoughness: 0.76,
     });
-    const ivory = new MeshStandardMaterial({
+    const ivory = new MeshPhysicalMaterial({
       color: 0xfff1d6,
-      roughness: 0.88,
+      roughness: 0.72,
+      clearcoat: 0.08,
     });
-    const coral = new MeshStandardMaterial({
+    const coral = new MeshPhysicalMaterial({
       color: 0xff765c,
-      roughness: 0.74,
+      roughness: 0.58,
+      clearcoat: 0.2,
     });
     const eye = new MeshStandardMaterial({
       color: 0x102536,
       roughness: 0.72,
     });
-    const runner = new MeshStandardMaterial({
-      color: 0x35576c,
-      roughness: 0.42,
-      metalness: 0.28,
+    const runner = new MeshPhysicalMaterial({
+      color: 0x91a9b5,
+      roughness: 0.22,
+      metalness: 0.82,
+      clearcoat: 0.45,
     });
-    this.sledMaterial = new MeshStandardMaterial({
+    this.sledMaterial = new MeshPhysicalMaterial({
       color: 0x20b6c9,
       emissive: 0x168bb0,
       emissiveIntensity: 0,
-      roughness: 0.68,
+      roughness: 0.43,
+      clearcoat: 0.38,
     });
 
     this.createSled(runner);
@@ -132,7 +143,7 @@ export class PenguinRider {
     const deck = new Group();
     for (let index = 0; index < 4; index += 1) {
       const slat = new Mesh(
-        new BoxGeometry(1.78, 0.1, 0.58),
+        new RoundedBoxGeometry(1.78, 0.13, 0.58, 4, 0.075),
         this.sledMaterial,
       );
       slat.position.set(0, 0.25, -0.9 + index * 0.6);
@@ -140,60 +151,75 @@ export class PenguinRider {
     }
     for (const x of [-0.72, 0.72]) {
       const rail = new Mesh(
-        new CylinderGeometry(0.065, 0.065, 3.05, 8),
+        new TubeGeometry(
+          new CatmullRomCurve3([
+            new Vector3(x, 0.04, -1.5),
+            new Vector3(x, 0.04, 0.95),
+            new Vector3(x, 0.09, 1.35),
+            new Vector3(x, 0.42, 1.62),
+          ]),
+          32,
+          0.065,
+          10,
+          false,
+        ),
         runnerMaterial,
       );
-      rail.rotation.x = Math.PI / 2;
-      rail.position.set(x, 0.08, 0);
       deck.add(rail);
-      const nose = new Mesh(
-        new TorusGeometry(0.24, 0.065, 6, 12, Math.PI * 0.55),
-        runnerMaterial,
-      );
-      nose.rotation.set(0, Math.PI / 2, Math.PI * 0.1);
-      nose.position.set(x, 0.29, 1.46);
-      deck.add(nose);
     }
     for (const z of [-0.92, 0.92]) {
       const brace = new Mesh(
-        new CylinderGeometry(0.045, 0.045, 1.5, 8),
+        new CylinderGeometry(0.045, 0.045, 1.5, 12),
         runnerMaterial,
       );
       brace.rotation.z = Math.PI / 2;
       brace.position.set(0, 0.16, z);
       deck.add(brace);
     }
+    const leather = new MeshPhysicalMaterial({
+      color: 0x6f412e,
+      roughness: 0.7,
+      clearcoat: 0.12,
+    });
+    for (const z of [-0.78, 0.78]) {
+      const strap = new Mesh(
+        new RoundedBoxGeometry(1.92, 0.07, 0.16, 3, 0.04),
+        leather,
+      );
+      strap.position.set(0, 0.34, z);
+      deck.add(strap);
+    }
     this.root.add(deck);
   }
 
   private createPenguin(
-    navy: MeshStandardMaterial,
-    ivory: MeshStandardMaterial,
-    coral: MeshStandardMaterial,
+    navy: MeshPhysicalMaterial,
+    ivory: MeshPhysicalMaterial,
+    coral: MeshPhysicalMaterial,
     eye: MeshStandardMaterial,
   ): void {
-    const body = new Mesh(new SphereGeometry(0.68, 20, 14), navy);
-    body.scale.set(0.92, 1.18, 0.84);
-    body.position.set(0, 1.22, 0.02);
+    const body = new Mesh(new CapsuleGeometry(0.57, 0.68, 10, 24), navy);
+    body.scale.set(0.98, 1.05, 0.92);
+    body.position.set(0, 1.24, 0.02);
 
-    const belly = new Mesh(new SphereGeometry(0.55, 18, 12), ivory);
+    const belly = new Mesh(new SphereGeometry(0.55, 28, 20), ivory);
     belly.scale.set(0.7, 1, 0.24);
     belly.position.set(0, 1.15, 0.58);
 
-    const headShell = new Mesh(new SphereGeometry(0.57, 20, 14), navy);
-    const face = new Mesh(new SphereGeometry(0.43, 18, 12), ivory);
+    const headShell = new Mesh(new SphereGeometry(0.57, 28, 20), navy);
+    const face = new Mesh(new SphereGeometry(0.43, 26, 18), ivory);
     face.scale.set(0.82, 0.78, 0.24);
     face.position.set(0, 0.02, 0.47);
     this.head.position.set(0, 1.88, 0.08);
     this.head.add(headShell, face);
 
     for (const x of [-0.16, 0.16]) {
-      const pupil = new Mesh(new SphereGeometry(0.065, 10, 8), eye);
+      const pupil = new Mesh(new SphereGeometry(0.065, 16, 12), eye);
       pupil.position.set(x, 0.1, 0.72);
       this.head.add(pupil);
     }
 
-    const beak = new Mesh(new ConeGeometry(0.15, 0.34, 4), coral);
+    const beak = new Mesh(new ConeGeometry(0.15, 0.34, 20), coral);
     beak.rotation.x = Math.PI / 2;
     beak.rotation.y = Math.PI / 4;
     beak.position.set(0, -0.06, 0.84);
@@ -201,24 +227,29 @@ export class PenguinRider {
 
     this.leftFlipper.position.set(-0.54, 1.42, 0.06);
     this.rightFlipper.position.set(0.54, 1.42, 0.06);
-    const leftWing = new Mesh(new ConeGeometry(0.23, 0.92, 8), navy);
+    const leftWing = new Mesh(new CapsuleGeometry(0.17, 0.56, 8, 18), navy);
     const rightWing = leftWing.clone();
-    leftWing.position.y = -0.35;
-    rightWing.position.y = -0.35;
+    leftWing.scale.set(0.72, 1, 0.34);
+    rightWing.scale.copy(leftWing.scale);
+    leftWing.position.y = -0.38;
+    rightWing.position.y = -0.38;
     this.leftFlipper.add(leftWing);
     this.rightFlipper.add(rightWing);
 
     for (const x of [-0.28, 0.28]) {
-      const foot = new Mesh(new SphereGeometry(0.22, 12, 8), coral);
+      const foot = new Mesh(new SphereGeometry(0.22, 22, 14), coral);
       foot.scale.set(1, 0.28, 1.35);
       foot.position.set(x, 0.48, 0.47);
       this.character.add(foot);
     }
 
-    const scarf = new Mesh(new TorusGeometry(0.46, 0.065, 6, 20), coral);
+    const scarf = new Mesh(new TorusGeometry(0.46, 0.085, 12, 36), coral);
     scarf.rotation.x = Math.PI / 2;
     scarf.position.set(0, 1.66, 0.08);
-    const scarfTailMesh = new Mesh(new BoxGeometry(0.18, 0.55, 0.065), coral);
+    const scarfTailMesh = new Mesh(
+      new RoundedBoxGeometry(0.2, 0.58, 0.08, 4, 0.045),
+      coral,
+    );
     scarfTailMesh.position.y = -0.23;
     this.scarfTail.position.set(0.36, 1.58, -0.3);
     this.scarfTail.add(scarfTailMesh);

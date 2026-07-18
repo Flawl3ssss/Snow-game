@@ -4,7 +4,6 @@ import {
   ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
-  DodecahedronGeometry,
   Float32BufferAttribute,
   Fog,
   Group,
@@ -14,11 +13,11 @@ import {
   Mesh,
   MeshStandardMaterial,
   Object3D,
-  OctahedronGeometry,
   PerspectiveCamera,
   PlaneGeometry,
   PointLight,
   Scene,
+  SphereGeometry,
   SRGBColorSpace,
   Vector3,
   WebGLRenderer,
@@ -40,17 +39,28 @@ import {
 } from "../simulation/SledSimulation";
 import { PenguinRider } from "./PenguinRider";
 import { SpeedEffects, type SpeedEffectSnapshot } from "./SpeedEffects";
+import {
+  createBoostPadModel,
+  createDirectionSign,
+  createFenceSection,
+  createPremiumMaterials,
+  createRampRail,
+  createRockModel,
+  createSlingshotPost,
+  createSnowflakeModel,
+} from "./WorldModels";
 
 export class SnowScene {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(55, 1, 0.1, 420);
+  private readonly materials = createPremiumMaterials();
   private readonly rider = new Group();
   private readonly penguin = new PenguinRider();
   private readonly slingshot = new Group();
   private readonly leftBand: Mesh<BoxGeometry, MeshStandardMaterial>;
   private readonly rightBand: Mesh<BoxGeometry, MeshStandardMaterial>;
-  private readonly courseVisuals = new Map<string, Mesh>();
+  private readonly courseVisuals = new Map<string, Object3D>();
   private readonly sledMaterial = this.penguin.sledMaterial;
   private readonly boostLight = new PointLight(0xffb632, 0, 8, 2);
   private readonly speedEffects: SpeedEffects;
@@ -293,8 +303,8 @@ export class SnowScene {
 
   private createRampMarkers(): void {
     const material = new MeshStandardMaterial({
-      color: 0xff8b36,
-      roughness: 0.82,
+      color: 0xd9f3fa,
+      roughness: 0.68,
       metalness: 0,
       polygonOffset: true,
       polygonOffsetFactor: -1,
@@ -321,55 +331,51 @@ export class SnowScene {
       geometry.computeVertexNormals();
       const marker = new Mesh(geometry, material);
       this.scene.add(marker);
+      this.scene.add(
+        createRampRail(
+          -RAMP_PHYSICAL_HALF_WIDTH,
+          ramp.start,
+          ramp.end,
+          surfaceHeightAt,
+          this.materials,
+        ),
+        createRampRail(
+          RAMP_PHYSICAL_HALF_WIDTH,
+          ramp.start,
+          ramp.end,
+          surfaceHeightAt,
+          this.materials,
+        ),
+      );
     }
   }
 
   private createCourseObjects(): void {
-    const coinMaterial = new MeshStandardMaterial({
-      color: 0x72e8ff,
-      emissive: 0x167b9e,
-      emissiveIntensity: 1.2,
-      roughness: 0.3,
-      metalness: 0.15,
-    });
-    const boostMaterial = new MeshStandardMaterial({
-      color: 0xffd04f,
-      emissive: 0xff6f2d,
-      emissiveIntensity: 0.9,
-      roughness: 0.55,
-    });
-    const rockMaterial = new MeshStandardMaterial({
-      color: 0x526b79,
-      roughness: 0.95,
-    });
-
-    for (const object of COURSE_OBJECTS) {
-      let visual: Mesh;
+    for (const [index, object] of COURSE_OBJECTS.entries()) {
+      let visual: Object3D;
       if (object.kind === "coin") {
-        visual = new Mesh(new OctahedronGeometry(0.48, 0), coinMaterial);
-        visual.scale.set(0.7, 1.25, 0.7);
+        visual = createSnowflakeModel(this.materials);
         visual.position.set(
           object.x,
           surfaceHeightAt(object.x, object.z) + 1.05,
           object.z,
         );
       } else if (object.kind === "boost") {
-        visual = new Mesh(new BoxGeometry(4.8, 0.12, 3.2), boostMaterial);
+        visual = createBoostPadModel(this.materials);
         visual.position.set(
           object.x,
-          surfaceHeightAt(object.x, object.z) + 0.08,
+          surfaceHeightAt(object.x, object.z) + 0.11,
           object.z,
         );
         visual.rotation.x = -Math.atan(surfaceSlopeZAt(object.x, object.z));
       } else {
-        visual = new Mesh(new DodecahedronGeometry(0.82, 0), rockMaterial);
-        visual.scale.set(1.2, 0.9, 1);
+        visual = createRockModel(this.materials, index % 3);
         visual.position.set(
           object.x,
-          surfaceHeightAt(object.x, object.z) + 0.66,
+          surfaceHeightAt(object.x, object.z) + 0.7,
           object.z,
         );
-        visual.rotation.set(0.2, object.z, 0.12);
+        visual.rotation.y = object.z;
       }
       this.courseVisuals.set(object.id, visual);
       this.scene.add(visual);
@@ -380,21 +386,13 @@ export class SnowScene {
     Mesh<BoxGeometry, MeshStandardMaterial>,
     Mesh<BoxGeometry, MeshStandardMaterial>,
   ] {
-    const postMaterial = new MeshStandardMaterial({
-      color: 0x68462f,
-      roughness: 0.9,
-    });
     const bandMaterial = new MeshStandardMaterial({
       color: 0xe54862,
-      roughness: 0.75,
+      roughness: 0.52,
     });
     for (const x of [-1.65, 1.65]) {
-      const post = new Mesh(
-        new CylinderGeometry(0.2, 0.3, 2.7, 8),
-        postMaterial,
-      );
+      const post = createSlingshotPost(x, this.materials);
       post.position.set(x, surfaceHeightAt(x, 0.7) + 1.15, 0.7);
-      post.rotation.z = x < 0 ? -0.13 : 0.13;
       this.slingshot.add(post);
     }
     const leftBand = new Mesh(new BoxGeometry(0.1, 0.1, 1), bandMaterial);
@@ -421,31 +419,26 @@ export class SnowScene {
   }
 
   private createScenery(): void {
-    const trunkMaterial = new MeshStandardMaterial({
-      color: 0x75513a,
-      roughness: 1,
-    });
-    const pineMaterial = new MeshStandardMaterial({
-      color: 0x176b57,
-      roughness: 0.9,
-    });
-    const snowMaterial = new MeshStandardMaterial({
-      color: 0xf4fbfd,
-      roughness: 0.96,
-    });
-    const mountainMaterial = new MeshStandardMaterial({
-      color: 0x91b9ce,
-      roughness: 1,
-      flatShading: true,
-    });
-    const trunkGeometry = new BoxGeometry(1, 1, 1);
-    const crownGeometry = new ConeGeometry(1, 1, 7);
-    const mountainGeometry = new ConeGeometry(1, 1, 5);
-    const trunks = new InstancedMesh(trunkGeometry, trunkMaterial, 46);
-    const lowerCrowns = new InstancedMesh(crownGeometry, pineMaterial, 46);
-    const middleCrowns = new InstancedMesh(crownGeometry, pineMaterial, 46);
-    const upperCrowns = new InstancedMesh(crownGeometry, pineMaterial, 46);
-    const snowCaps = new InstancedMesh(crownGeometry, snowMaterial, 46);
+    const trunkGeometry = new CylinderGeometry(1, 1, 1, 16, 2);
+    const crownGeometry = new SphereGeometry(1, 20, 14);
+    const mountainGeometry = new ConeGeometry(1, 1, 32, 8);
+    const trunks = new InstancedMesh(trunkGeometry, this.materials.bark, 46);
+    const lowerCrowns = new InstancedMesh(
+      crownGeometry,
+      this.materials.pine,
+      46,
+    );
+    const middleCrowns = new InstancedMesh(
+      crownGeometry,
+      this.materials.pineLight,
+      46,
+    );
+    const upperCrowns = new InstancedMesh(
+      crownGeometry,
+      this.materials.pine,
+      46,
+    );
+    const snowCaps = new InstancedMesh(crownGeometry, this.materials.snow, 46);
     const dummy = new Object3D();
 
     for (let index = 0; index < 46; index += 1) {
@@ -472,11 +465,11 @@ export class SnowScene {
         dummy,
         index,
         x,
-        base + 2.65 * scale,
+        base + 2.85 * scale,
         z,
-        2.15 * scale,
-        2.8 * scale,
-        2.15 * scale,
+        2.0 * scale,
+        1.5 * scale,
+        1.82 * scale,
         rotation,
       );
       this.setSceneryInstance(
@@ -484,11 +477,11 @@ export class SnowScene {
         dummy,
         index,
         x,
-        base + 4.05 * scale,
+        base + 4.15 * scale,
         z,
-        1.7 * scale,
-        2.5 * scale,
-        1.7 * scale,
+        1.58 * scale,
+        1.4 * scale,
+        1.46 * scale,
         rotation + 0.2,
       );
       this.setSceneryInstance(
@@ -498,9 +491,9 @@ export class SnowScene {
         x,
         base + 5.25 * scale,
         z,
-        1.18 * scale,
-        2.15 * scale,
-        1.18 * scale,
+        1.12 * scale,
+        1.28 * scale,
+        1.04 * scale,
         rotation - 0.15,
       );
       this.setSceneryInstance(
@@ -508,17 +501,26 @@ export class SnowScene {
         dummy,
         index,
         x,
-        base + 5.62 * scale,
+        base + 5.83 * scale,
         z,
-        0.88 * scale,
-        0.8 * scale,
-        0.88 * scale,
+        0.83 * scale,
+        0.3 * scale,
+        0.78 * scale,
         rotation,
       );
     }
     this.scene.add(trunks, lowerCrowns, middleCrowns, upperCrowns, snowCaps);
 
-    const mountains = new InstancedMesh(mountainGeometry, mountainMaterial, 18);
+    const mountains = new InstancedMesh(
+      mountainGeometry,
+      this.materials.mountain,
+      18,
+    );
+    const mountainSnow = new InstancedMesh(
+      mountainGeometry,
+      this.materials.mountainSnow,
+      18,
+    );
     for (let index = 0; index < 18; index += 1) {
       const side = index % 2 === 0 ? -1 : 1;
       const z = 28 + Math.floor(index / 2) * 38;
@@ -537,8 +539,37 @@ export class SnowScene {
         scale,
         index * 0.31,
       );
+      this.setSceneryInstance(
+        mountainSnow,
+        dummy,
+        index,
+        x,
+        base + scale * 1.18,
+        z,
+        scale * 0.47,
+        scale * 0.52,
+        scale * 0.47,
+        index * 0.31,
+      );
     }
-    this.scene.add(mountains);
+    this.scene.add(mountains, mountainSnow);
+
+    for (let index = 0; index < 8; index += 1) {
+      const side = index % 2 === 0 ? -1 : 1;
+      const z = 38 + index * 34;
+      const sign = createDirectionSign(side, this.materials);
+      sign.position.set(side * 12.5, surfaceHeightAt(side * 12.5, z), z);
+      sign.rotation.y = side < 0 ? 0.22 : -0.22;
+      this.scene.add(sign);
+    }
+    for (let index = 0; index < 16; index += 1) {
+      const side = index % 2 === 0 ? -1 : 1;
+      const z = 24 + Math.floor(index / 2) * 42;
+      const fence = createFenceSection(this.materials);
+      fence.position.set(side * 15.5, surfaceHeightAt(side * 15.5, z), z);
+      fence.rotation.y = side < 0 ? 0.08 : -0.08;
+      this.scene.add(fence);
+    }
   }
 
   private setSceneryInstance(

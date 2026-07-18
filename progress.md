@@ -2,7 +2,7 @@ Original prompt: создать качественную мобильную 3D w
 
 ## Current stage
 
-G4 — character identity and production art direction.
+G5 — premium smooth stylized 3D production models.
 
 ## Completed
 
@@ -98,3 +98,13 @@ G4 — character identity and production art direction.
   the torso, and the boost scenario mixed browser wall-clock frames with a
   deterministic time jump. Flippers now open outward, while the route test
   uses a direct slingshot lane aim so rendering speed cannot change its path.
+- The G4 low-poly direction was rejected and is now explicitly marked as
+  superseded. G5 targets smooth animated-feature stylization with bevels,
+  curves, layered construction, and surface-specific material response.
+- A complete model manifest now covers the penguin, crafted sled, slingshot,
+  two ramps, snowflake, boost pad, three rock variants, firs, mountains,
+  direction signs, safety fences, and the existing contact/VFX models.
+- Placeholder primitives were replaced with compound runtime models: curved
+  TubeGeometry runners and ramp rails, rounded sled boards and straps,
+  articulated ice snowflakes, inset-chevron boost pads, smooth snow-capped
+  rocks, high-segment trees/mountains, wooden signs, and safety fencing.

@@ -1,4 +1,7 @@
-# G4 art bible — Penguin Rush
+# G4 art bible — Penguin Rush (superseded)
+
+> This low-poly direction was rejected after visual review. The active art
+> direction is [`g5-premium-art-direction.md`](g5-premium-art-direction.md).
 
 ## Direction
 
