@@ -1,7 +1,6 @@
 import {
   BoxGeometry,
   Color,
-  ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
   Float32BufferAttribute,
@@ -18,7 +17,7 @@ import {
   PlaneGeometry,
   PointLight,
   Scene,
-  SphereGeometry,
+  SplineCurve,
   SRGBColorSpace,
   Vector2,
   Vector3,
@@ -425,23 +424,51 @@ export class SnowScene {
     // A single revolved profile gives every fir a layered, organic silhouette
     // without multiplying draw calls. Separate snow clumps keep the crown
     // readable against pale mountains and avoid the old topiary-ball look.
-    const crownGeometry = new LatheGeometry(
-      [
-        new Vector2(0.05, 1.2),
-        new Vector2(0.34, 1.02),
-        new Vector2(0.2, 0.76),
-        new Vector2(0.72, 0.56),
-        new Vector2(0.42, 0.28),
-        new Vector2(0.98, 0.06),
-        new Vector2(0.58, -0.25),
-        new Vector2(1.18, -0.52),
-        new Vector2(0.76, -0.78),
-        new Vector2(0.08, -0.9),
-      ],
+    const crownProfile = new SplineCurve([
+      new Vector2(0.05, 1.2),
+      new Vector2(0.34, 1.02),
+      new Vector2(0.2, 0.76),
+      new Vector2(0.72, 0.56),
+      new Vector2(0.42, 0.28),
+      new Vector2(0.98, 0.06),
+      new Vector2(0.58, -0.25),
+      new Vector2(1.18, -0.52),
+      new Vector2(0.76, -0.78),
+      new Vector2(0.08, -0.9),
+    ]).getPoints(36);
+    const crownGeometry = new LatheGeometry(crownProfile, 24);
+    const snowClumpGeometry = new LatheGeometry(
+      new SplineCurve([
+        new Vector2(0.06, 0.2),
+        new Vector2(0.34, 0.19),
+        new Vector2(0.72, 0.1),
+        new Vector2(1, 0),
+        new Vector2(0.58, -0.08),
+        new Vector2(0.08, -0.1),
+      ]).getPoints(20),
       20,
     );
-    const snowClumpGeometry = new SphereGeometry(1, 12, 8);
-    const mountainGeometry = new ConeGeometry(1, 1, 24, 5);
+    const mountainGeometry = new LatheGeometry(
+      new SplineCurve([
+        new Vector2(1.08, -0.5),
+        new Vector2(1.02, -0.28),
+        new Vector2(0.82, -0.05),
+        new Vector2(0.58, 0.18),
+        new Vector2(0.27, 0.38),
+        new Vector2(0.02, 0.5),
+      ]).getPoints(28),
+      28,
+    );
+    const mountainSnowGeometry = new LatheGeometry(
+      new SplineCurve([
+        new Vector2(1, -0.5),
+        new Vector2(0.86, -0.3),
+        new Vector2(0.58, -0.02),
+        new Vector2(0.25, 0.3),
+        new Vector2(0.02, 0.5),
+      ]).getPoints(22),
+      28,
+    );
     const trunks = new InstancedMesh(trunkGeometry, this.materials.bark, 46);
     const crowns = new InstancedMesh(crownGeometry, this.materials.pine, 46);
     const snowClumps = new InstancedMesh(
@@ -510,7 +537,7 @@ export class SnowScene {
       18,
     );
     const mountainSnow = new InstancedMesh(
-      mountainGeometry,
+      mountainSnowGeometry,
       this.materials.mountainSnow,
       18,
     );

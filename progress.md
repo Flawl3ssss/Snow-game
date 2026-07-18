@@ -120,3 +120,8 @@ G5 — premium smooth stylized 3D production models.
   with three snow shelves, boost pads use filled beveled chevrons, and signs
   present their arrows toward the player. The tree pass also drops two shared
   draw-call batches compared with the rejected version.
+- A second evidence review still found primitive cone mountains and overly flat
+  snow bands. Both now use dense spline-sampled LatheGeometry profiles: rounded
+  mountain shoulders and fitted summit caps in the distance, plus curved snow
+  shelves following the fir branch silhouette. No additional draw calls were
+  introduced by this polish pass.
