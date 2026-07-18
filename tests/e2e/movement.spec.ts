@@ -3,7 +3,15 @@ import { expect, test, type Page } from "@playwright/test";
 type GameText = {
   state: string;
   distanceMeters: number;
-  rider: { x: number; forwardSpeed: number; stopped: boolean };
+  rider: {
+    x: number;
+    height: number;
+    forwardSpeed: number;
+    verticalSpeed: number;
+    grounded: boolean;
+    landingImpact: number;
+    stopped: boolean;
+  };
 };
 
 type GameHooks = {
@@ -137,4 +145,43 @@ test("slingshot horizontal pull launches directly toward that side", async ({
   const state = await readGame(page);
   expect(state.state).toBe("RIDING");
   expect(state.rider.x).toBeGreaterThan(0.5);
+});
+
+test("ramp produces a rising arc, falling arc, and grounded landing", async ({
+  page,
+}) => {
+  await page.goto("/?debug");
+  await launch(page, 0);
+
+  let sawRisingFlight = false;
+  let sawFallingFlight = false;
+  let sawLanding = false;
+  let previousGrounded = true;
+  let largestImpact = 0;
+  let capturedFlight = false;
+
+  for (let step = 0; step < 110; step += 1) {
+    await advance(page, 100);
+    const state = await readGame(page);
+    if (!state.rider.grounded) {
+      sawRisingFlight ||= state.rider.verticalSpeed > 0.25;
+      sawFallingFlight ||= state.rider.verticalSpeed < -0.25;
+      if (!capturedFlight && state.rider.verticalSpeed < -0.5) {
+        await page.screenshot({
+          path: `artifacts/playtests/g1-airborne-${test.info().project.name}.png`,
+          fullPage: true,
+        });
+        capturedFlight = true;
+      }
+    }
+    largestImpact = Math.max(largestImpact, state.rider.landingImpact);
+    if (!previousGrounded && state.rider.grounded) sawLanding = true;
+    previousGrounded = state.rider.grounded;
+  }
+
+  expect(sawRisingFlight).toBe(true);
+  expect(sawFallingFlight).toBe(true);
+  expect(sawLanding).toBe(true);
+  expect(largestImpact).toBeGreaterThan(2);
+  expect(capturedFlight).toBe(true);
 });

@@ -30,6 +30,8 @@ export class DebugOverlay {
       `fps ${frame.fps.toFixed(0)}`,
       `fixed ${frame.fixed.fixedSteps} alpha ${frame.fixed.interpolationAlpha.toFixed(2)}`,
       `speed ${frame.simulation.forwardSpeed.toFixed(1)} m/s`,
+      `${frame.simulation.grounded ? "GROUND" : "AIR"} vy ${frame.simulation.verticalSpeed.toFixed(1)} m/s`,
+      `slope ${((frame.simulation.slopeRadians * 180) / Math.PI).toFixed(1)}° impact ${frame.simulation.landingImpact.toFixed(1)}`,
       `distance ${frame.simulation.distanceMeters.toFixed(1)} m`,
       `x ${frame.simulation.x.toFixed(2)} steer ${frame.simulation.steer.toFixed(2)}`,
       `render ${frame.renderSize}`,
