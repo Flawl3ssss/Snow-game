@@ -60,6 +60,7 @@ export const SLED_PHYSICS = {
 
 const DERIVATIVE_STEP = 0.2;
 const CURVATURE_STEP = 0.35;
+export const RAMP_PHYSICAL_HALF_WIDTH = 6.4;
 
 const RAMP_TAKEOFF_ZONES = [
   { start: 68.5, end: 71.2, sample: 69 },
@@ -87,7 +88,7 @@ const rampHeightAt = (
 };
 
 const rampLateralMask = (x: number): number =>
-  Math.exp(-Math.pow(Math.abs(x) / 5.4, 6));
+  Math.exp(-Math.pow(Math.abs(x) / RAMP_PHYSICAL_HALF_WIDTH, 6));
 
 export const surfaceHeightAt = (x: number, z: number): number => {
   const edgeLift = Math.pow(Math.abs(x) / 29, 2) * 2.8;
@@ -112,14 +113,26 @@ export const surfaceCurvatureZAt = (x: number, z: number): number =>
   (CURVATURE_STEP * CURVATURE_STEP);
 
 const sweptRampTakeoffSlope = (
-  x: number,
+  startX: number,
+  endX: number,
   startZ: number,
   endZ: number,
-): number | undefined => {
-  if (rampLateralMask(x) < 0.3) return undefined;
-  for (const zone of RAMP_TAKEOFF_ZONES) {
+): { index: number; slope: number } | undefined => {
+  const minimumX = Math.min(startX, endX);
+  const maximumX = Math.max(startX, endX);
+  if (
+    minimumX > RAMP_PHYSICAL_HALF_WIDTH ||
+    maximumX < -RAMP_PHYSICAL_HALF_WIDTH
+  ) {
+    return undefined;
+  }
+  const sampleX = clamp(0, minimumX, maximumX);
+  for (const [index, zone] of RAMP_TAKEOFF_ZONES.entries()) {
     if (endZ < zone.start || startZ > zone.end) continue;
-    return Math.max(0.08, surfaceSlopeZAt(x, zone.sample));
+    return {
+      index,
+      slope: Math.max(0.08, surfaceSlopeZAt(sampleX, zone.sample)),
+    };
   }
   return undefined;
 };
@@ -146,6 +159,7 @@ export class SledSimulation {
   private belowStopSeconds = 0;
   private launchSpeedBonus = 0;
   private snowResistanceMultiplier = 1;
+  private readonly triggeredRampTakeoffs = new Set<number>();
 
   configureUpgrades(tuning: SledUpgradeTuning): void {
     this.launchSpeedBonus = clamp(tuning.launchSpeedBonus, 0, 6);
@@ -185,6 +199,7 @@ export class SledSimulation {
     this.moving = true;
     this.stopped = false;
     this.belowStopSeconds = 0;
+    this.triggeredRampTakeoffs.clear();
   }
 
   reset(): void {
@@ -207,6 +222,7 @@ export class SledSimulation {
     this.moving = false;
     this.stopped = false;
     this.belowStopSeconds = 0;
+    this.triggeredRampTakeoffs.clear();
   }
 
   update(dt: number, input: SledInput): void {
@@ -264,7 +280,17 @@ export class SledSimulation {
     const requiredVerticalAcceleration =
       curvature * this.forwardSpeed * this.forwardSpeed;
     const projectedZ = this.z + this.forwardSpeed * dt;
-    const rampTakeoffSlope = sweptRampTakeoffSlope(this.x, this.z, projectedZ);
+    const projectedX = this.x + this.lateralSpeed * dt;
+    const rampTakeoff = sweptRampTakeoffSlope(
+      this.x,
+      projectedX,
+      this.z,
+      projectedZ,
+    );
+    const rampTakeoffSlope =
+      rampTakeoff && !this.triggeredRampTakeoffs.has(rampTakeoff.index)
+        ? rampTakeoff.slope
+        : undefined;
     const naturalTakeoff =
       this.landingCooldownSeconds <= 0 &&
       this.z > 8 &&
@@ -274,11 +300,12 @@ export class SledSimulation {
       requiredVerticalAcceleration <
         -SLED_PHYSICS.gravity * SLED_PHYSICS.takeoffGravityRatio;
     const guaranteedRampTakeoff =
-      this.landingCooldownSeconds <= 0 &&
-      this.forwardSpeed > 7 &&
-      rampTakeoffSlope !== undefined;
+      this.forwardSpeed > 7 && rampTakeoffSlope !== undefined;
 
     if (naturalTakeoff || guaranteedRampTakeoff) {
+      if (rampTakeoff && rampTakeoffSlope !== undefined) {
+        this.triggeredRampTakeoffs.add(rampTakeoff.index);
+      }
       this.grounded = false;
       const launchSlope = Math.max(slope, rampTakeoffSlope ?? slope);
       this.verticalSpeed = Math.max(
