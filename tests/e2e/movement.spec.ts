@@ -178,7 +178,14 @@ test("ramp produces a rising arc, falling arc, and grounded landing", async ({
   expect(rising.rider.grounded).toBe(false);
   expect(rising.rider.verticalSpeed).toBeGreaterThan(0.25);
 
-  await advance(page, 900);
+  await page.keyboard.down("ArrowRight");
+  await advance(page, 400);
+  await page.keyboard.up("ArrowRight");
+  const airControlled = await readGame(page);
+  expect(airControlled.rider.grounded).toBe(false);
+  expect(airControlled.rider.x).toBeGreaterThan(rising.rider.x + 0.12);
+
+  await advance(page, 500);
   const falling = await readGame(page);
   expect(falling.rider.grounded).toBe(false);
   expect(falling.rider.verticalSpeed).toBeLessThan(-0.25);
