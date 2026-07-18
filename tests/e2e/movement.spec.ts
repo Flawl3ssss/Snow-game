@@ -153,36 +153,22 @@ test("ramp produces a rising arc, falling arc, and grounded landing", async ({
   await page.goto("/?debug");
   await launch(page, 0);
 
-  let sawRisingFlight = false;
-  let sawFallingFlight = false;
-  let sawLanding = false;
-  let previousGrounded = true;
-  let largestImpact = 0;
-  let capturedFlight = false;
+  await advance(page, 3200);
+  const rising = await readGame(page);
+  expect(rising.rider.grounded).toBe(false);
+  expect(rising.rider.verticalSpeed).toBeGreaterThan(0.25);
 
-  for (let step = 0; step < 110; step += 1) {
-    await advance(page, 100);
-    const state = await readGame(page);
-    if (!state.rider.grounded) {
-      sawRisingFlight ||= state.rider.verticalSpeed > 0.25;
-      sawFallingFlight ||= state.rider.verticalSpeed < -0.25;
-      if (!capturedFlight && state.rider.verticalSpeed < -0.5) {
-        await page.screenshot({
-          path: `artifacts/playtests/g1-airborne-${test.info().project.name}.png`,
-          fullPage: true,
-        });
-        capturedFlight = true;
-      }
-    }
-    largestImpact = Math.max(largestImpact, state.rider.landingImpact);
-    if (!previousGrounded && state.rider.grounded) sawLanding = true;
-    previousGrounded = state.rider.grounded;
-    if (sawLanding && capturedFlight) break;
-  }
+  await advance(page, 900);
+  const falling = await readGame(page);
+  expect(falling.rider.grounded).toBe(false);
+  expect(falling.rider.verticalSpeed).toBeLessThan(-0.25);
+  await page.screenshot({
+    path: `artifacts/playtests/g1-airborne-${test.info().project.name}.png`,
+    fullPage: true,
+  });
 
-  expect(sawRisingFlight).toBe(true);
-  expect(sawFallingFlight).toBe(true);
-  expect(sawLanding).toBe(true);
-  expect(largestImpact).toBeGreaterThan(2);
-  expect(capturedFlight).toBe(true);
+  await advance(page, 1000);
+  const landed = await readGame(page);
+  expect(landed.rider.grounded).toBe(true);
+  expect(landed.rider.landingImpact).toBeGreaterThan(2);
 });
