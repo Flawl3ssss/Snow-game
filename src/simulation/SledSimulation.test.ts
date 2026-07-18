@@ -69,12 +69,33 @@ describe("SledSimulation", () => {
     expect(right.lateralSpeed).toBeGreaterThan(1);
   });
 
+  it("scales lateral launch strength with the aiming angle", () => {
+    const coastFromAim = (aim: number) => {
+      const simulation = new SledSimulation();
+      simulation.launch({ power: 0.9, aim });
+      for (let tick = 0; tick < 60 * 1.5; tick += 1) {
+        simulation.update(1 / 60, { steer: 0 });
+      }
+      return simulation.snapshot.x;
+    };
+
+    const weakRight = coastFromAim(0.25);
+    const strongRight = coastFromAim(0.9);
+    const weakLeft = coastFromAim(-0.25);
+    const strongLeft = coastFromAim(-0.9);
+
+    expect(strongRight).toBeGreaterThan(weakRight * 3);
+    expect(strongLeft).toBeLessThan(weakLeft * 3);
+    expect(weakRight).toBeCloseTo(-weakLeft, 5);
+    expect(strongRight).toBeCloseTo(-strongLeft, 5);
+  });
+
   it("slows down and reaches a stable stopped state", () => {
     const snapshot = simulate([], 45);
     expect(snapshot.stopped).toBe(true);
     expect(snapshot.forwardSpeed).toBe(0);
-    expect(snapshot.distanceMeters).toBeGreaterThan(120);
-    expect(snapshot.distanceMeters).toBeLessThan(350);
+    expect(snapshot.distanceMeters).toBeGreaterThan(140);
+    expect(snapshot.distanceMeters).toBeLessThan(240);
   });
 
   it("applies launch aim without exceeding the track boundary", () => {
