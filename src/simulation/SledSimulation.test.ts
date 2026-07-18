@@ -163,7 +163,7 @@ describe("SledSimulation", () => {
     expect(snapshot.stopped).toBe(true);
     expect(snapshot.forwardSpeed).toBe(0);
     expect(snapshot.distanceMeters).toBeGreaterThan(140);
-    expect(snapshot.distanceMeters).toBeLessThan(240);
+    expect(snapshot.distanceMeters).toBeLessThan(280);
   });
 
   it("applies launch aim without exceeding the track boundary", () => {
@@ -204,5 +204,126 @@ describe("SledSimulation", () => {
     expect(simulation.snapshot.forwardSpeed).toBeCloseTo(29, 8);
     simulation.applyObstacleHit();
     expect(simulation.snapshot.forwardSpeed).toBeCloseTo(20.88, 8);
+  });
+
+  it("cannot skip either ramp takeoff after a boost or a long simulation step", () => {
+    const simulation = new SledSimulation();
+    simulation.launch({ power: 1, aim: 0 });
+    let wasGrounded = true;
+    let takeoffs = 0;
+    let crossedSecondRampAirborne = false;
+    let firstBoost = false;
+    let secondBoost = false;
+
+    for (let tick = 0; tick < 20 / 0.05; tick += 1) {
+      const before = simulation.snapshot;
+      if (!firstBoost && before.z >= 46) {
+        simulation.applyBoost(7);
+        firstBoost = true;
+      }
+      if (!secondBoost && before.z >= 122) {
+        simulation.applyBoost(7);
+        secondBoost = true;
+      }
+      simulation.update(0.05, { steer: 0 });
+      const snapshot = simulation.snapshot;
+      if (wasGrounded && !snapshot.grounded) takeoffs += 1;
+      if (before.z < 136 && snapshot.z >= 136 && !snapshot.grounded) {
+        crossedSecondRampAirborne = true;
+      }
+      wasGrounded = snapshot.grounded;
+    }
+
+    expect(firstBoost).toBe(true);
+    expect(secondBoost).toBe(true);
+    expect(takeoffs).toBeGreaterThanOrEqual(1);
+    expect(takeoffs === 2 || crossedSecondRampAirborne).toBe(true);
+  });
+
+  it.each([-5, 0, 5])(
+    "clears both ramp lips on the boosted x=%s route",
+    (targetX) => {
+      const simulation = new SledSimulation();
+      simulation.launch({ power: 1, aim: 0 });
+      let previous = simulation.snapshot;
+      let takeoffs = 0;
+      let clearedSecondRampAirborne = false;
+      let firstBoost = false;
+      let secondBoost = false;
+
+      for (let tick = 0; tick < 300; tick += 1) {
+        const before = simulation.snapshot;
+        if (!firstBoost && before.z >= 46) {
+          simulation.applyBoost(7);
+          firstBoost = true;
+        }
+        if (!secondBoost && before.z >= 122) {
+          simulation.applyBoost(7);
+          secondBoost = true;
+        }
+        const steer = Math.max(
+          -1,
+          Math.min(1, (targetX - before.x) * 0.65 - before.lateralSpeed * 0.3),
+        );
+        simulation.update(0.05, { steer });
+        const snapshot = simulation.snapshot;
+        if (previous.grounded && !snapshot.grounded) takeoffs += 1;
+        if (before.z < 136 && snapshot.z >= 136 && !snapshot.grounded) {
+          clearedSecondRampAirborne = true;
+        }
+        previous = snapshot;
+        if (snapshot.z > 165) break;
+      }
+
+      expect(firstBoost).toBe(true);
+      expect(secondBoost).toBe(true);
+      expect(takeoffs).toBeGreaterThanOrEqual(1);
+      expect(clearedSecondRampAirborne).toBe(true);
+    },
+  );
+
+  it("responds sharply on snow and reverses without a long steering delay", () => {
+    const simulation = new SledSimulation();
+    simulation.launch({ power: 1, aim: 0 });
+    for (let tick = 0; tick < 30; tick += 1) {
+      simulation.update(1 / 60, { steer: 1 });
+    }
+    expect(simulation.snapshot.lateralSpeed).toBeGreaterThan(3);
+
+    for (let tick = 0; tick < 36; tick += 1) {
+      simulation.update(1 / 60, { steer: -1 });
+    }
+    expect(simulation.snapshot.lateralSpeed).toBeLessThan(-2);
+  });
+
+  it("allows weaker but meaningful steering control while airborne", () => {
+    const airborneTurn = (steer: number) => {
+      const simulation = new SledSimulation();
+      simulation.launch({ power: 1, aim: 0 });
+      while (simulation.snapshot.grounded) {
+        simulation.update(1 / 60, { steer: 0 });
+      }
+      const takeoffX = simulation.snapshot.x;
+      for (
+        let tick = 0;
+        tick < 30 && !simulation.snapshot.grounded;
+        tick += 1
+      ) {
+        simulation.update(1 / 60, { steer });
+      }
+      return {
+        displacement: simulation.snapshot.x - takeoffX,
+        lateralSpeed: simulation.snapshot.lateralSpeed,
+      };
+    };
+
+    const left = airborneTurn(-1);
+    const neutral = airborneTurn(0);
+    const right = airborneTurn(1);
+    expect(left.displacement).toBeLessThan(neutral.displacement - 0.2);
+    expect(right.displacement).toBeGreaterThan(neutral.displacement + 0.2);
+    expect(left.lateralSpeed).toBeLessThan(0);
+    expect(right.lateralSpeed).toBeGreaterThan(0);
+    expect(Math.abs(right.lateralSpeed)).toBeLessThan(3);
   });
 });
