@@ -52,7 +52,7 @@ describe("dynamic run balance", () => {
   });
 
   it("supports a fast side-route style with boost and no forced collision", () => {
-    const run = playRun((time) => (time < 2 ? -1 : 0));
+    const run = playRun((time) => (time < 0.5 ? -1 : 0));
     expect(run.counts.boost).toBeGreaterThanOrEqual(1);
     expect(run.counts.rock).toBe(0);
     expect(run.simulation.distanceMeters).toBeGreaterThan(260);
