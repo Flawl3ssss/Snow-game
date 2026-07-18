@@ -48,6 +48,27 @@ describe("SledSimulation", () => {
     expect(snapshot.lateralSpeed).toBeLessThan(0);
   });
 
+  it("preserves visibly different left, center, and right launch trajectories", () => {
+    const launchAndCoast = (aim: number) => {
+      const simulation = new SledSimulation();
+      simulation.launch({ power: 0.9, aim });
+      for (let tick = 0; tick < 60 * 2; tick += 1) {
+        simulation.update(1 / 60, { steer: 0 });
+      }
+      return simulation.snapshot;
+    };
+
+    const left = launchAndCoast(-1);
+    const center = launchAndCoast(0);
+    const right = launchAndCoast(1);
+
+    expect(left.x).toBeLessThan(-5);
+    expect(center.x).toBeCloseTo(0, 8);
+    expect(right.x).toBeGreaterThan(5);
+    expect(left.lateralSpeed).toBeLessThan(-1);
+    expect(right.lateralSpeed).toBeGreaterThan(1);
+  });
+
   it("slows down and reaches a stable stopped state", () => {
     const snapshot = simulate([], 45);
     expect(snapshot.stopped).toBe(true);

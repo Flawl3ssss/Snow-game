@@ -98,7 +98,8 @@ export class SledSimulation {
       : 1;
     const targetLateralSpeed =
       this.steer * maxLateralSpeed * edgeSteeringFactor;
-    const lateralResponse = 4.8;
+    const isActivelySteering = Math.abs(targetSteer) > 0.025;
+    const lateralResponse = isActivelySteering ? 4.8 : 0.62;
     this.lateralSpeed +=
       (targetLateralSpeed - this.lateralSpeed) *
       Math.min(1, lateralResponse * safeDt);
