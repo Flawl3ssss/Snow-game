@@ -1,5 +1,5 @@
 import { DebugOverlay } from "../diagnostics/DebugOverlay";
-import { InputController } from "../input/InputController";
+import { InputController, pullAimToLaunchAim } from "../input/InputController";
 import { LocalPlatformBridge } from "../platform/LocalPlatformBridge";
 import { SnowScene } from "../render/SnowScene";
 import {
@@ -156,7 +156,10 @@ export class GameApp {
     if (this.stateMachine.state !== "AIMING") return;
     this.aim = { ...parameters };
     this.stateMachine.transition("LAUNCHING");
-    this.simulation.launch(this.aim);
+    this.simulation.launch({
+      ...this.aim,
+      aim: pullAimToLaunchAim(this.aim.aim),
+    });
     this.stateMachine.transition("RIDING");
   }
 
