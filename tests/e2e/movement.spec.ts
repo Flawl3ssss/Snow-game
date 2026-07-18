@@ -76,6 +76,16 @@ const launch = async (page: Page, horizontalPull: number): Promise<void> => {
   await expect(page.getByTestId("state-chip")).toHaveText("RIDING");
 };
 
+const launchTowardLane = async (
+  page: Page,
+  normalizedPull: number,
+): Promise<void> => {
+  const box = await page.locator("canvas").boundingBox();
+  if (!box) throw new Error("Game canvas has no bounds");
+  const maxAimPixels = Math.min(box.width * 0.42, 240);
+  await launch(page, maxAimPixels * normalizedPull);
+};
+
 test("right launch, direct steering, stable stop, and reset", async ({
   page,
 }) => {
@@ -239,7 +249,7 @@ test("side boost creates a gold burst and readable speed feedback", async ({
   // Aim directly at the side lane. Holding a key around a large deterministic
   // time jump also includes browser wall-clock frames, which varies with the
   // mobile software renderer and can overshoot the boost entirely.
-  await launch(page, -30);
+  await launchTowardLane(page, -0.6);
   await advance(page, 2000);
 
   const state = await readGame(page);
