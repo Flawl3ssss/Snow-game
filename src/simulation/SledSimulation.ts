@@ -105,7 +105,7 @@ export class SledSimulation {
       Math.min(1, lateralResponse * safeDt);
 
     const gravityAlongSlope = 9.81 * 0.08 * 0.72;
-    const rollingResistance = 0.52 + this.z * 0.0042;
+    const rollingResistance = 0.72 + this.z * 0.006;
     const aerodynamicDrag = 0.0018 * this.forwardSpeed * this.forwardSpeed;
     const steeringLoss =
       0.022 * Math.pow(Math.abs(this.steer), 1.4) * this.forwardSpeed;

@@ -10,9 +10,10 @@ describe("dragToSteer", () => {
 });
 
 describe("dragToAim", () => {
-  it("launches toward the corrected side of the slingshot gesture", () => {
-    expect(dragToAim(0.65)).toBeCloseTo(-0.65);
-    expect(dragToAim(-0.35)).toBeCloseTo(0.35);
-    expect(dragToAim(-3)).toBe(1);
+  it("maps slingshot aim directly and proportionally to the gesture", () => {
+    expect(dragToAim(0.2)).toBeCloseTo(0.2);
+    expect(dragToAim(0.65)).toBeCloseTo(0.65);
+    expect(dragToAim(-0.35)).toBeCloseTo(-0.35);
+    expect(dragToAim(-3)).toBe(-1);
   });
 });
