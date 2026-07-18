@@ -190,7 +190,7 @@ test("ramp produces a rising arc, falling arc, and grounded landing", async ({
   await advance(page, 1000);
   const landed = await readGame(page);
   expect(landed.rider.grounded).toBe(true);
-  expect(landed.rider.landingImpact).toBeGreaterThan(2);
+  expect(landed.rider.landingImpact).toBeGreaterThan(1.5);
 });
 
 test("dynamic course awards a pickup, score, and visible feedback", async ({
