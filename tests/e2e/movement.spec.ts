@@ -3,7 +3,15 @@ import { expect, test, type Page } from "@playwright/test";
 type GameText = {
   state: string;
   distanceMeters: number;
-  rider: { x: number; forwardSpeed: number; stopped: boolean };
+  rider: {
+    x: number;
+    height: number;
+    forwardSpeed: number;
+    verticalSpeed: number;
+    grounded: boolean;
+    landingImpact: number;
+    stopped: boolean;
+  };
 };
 
 type GameHooks = {
@@ -137,4 +145,30 @@ test("slingshot horizontal pull launches directly toward that side", async ({
   const state = await readGame(page);
   expect(state.state).toBe("RIDING");
   expect(state.rider.x).toBeGreaterThan(0.5);
+});
+
+test("ramp produces a rising arc, falling arc, and grounded landing", async ({
+  page,
+}) => {
+  await page.goto("/?debug");
+  await launch(page, 0);
+
+  await advance(page, 3200);
+  const rising = await readGame(page);
+  expect(rising.rider.grounded).toBe(false);
+  expect(rising.rider.verticalSpeed).toBeGreaterThan(0.25);
+
+  await advance(page, 900);
+  const falling = await readGame(page);
+  expect(falling.rider.grounded).toBe(false);
+  expect(falling.rider.verticalSpeed).toBeLessThan(-0.25);
+  await page.screenshot({
+    path: `artifacts/playtests/g1-airborne-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+
+  await advance(page, 1000);
+  const landed = await readGame(page);
+  expect(landed.rider.grounded).toBe(true);
+  expect(landed.rider.landingImpact).toBeGreaterThan(2);
 });

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { SledSimulation } from "./SledSimulation";
+import {
+  SledSimulation,
+  surfaceHeightAt,
+  surfaceSlopeZAt,
+} from "./SledSimulation";
 
 type InputEvent = { atSeconds: number; steer: number };
 
@@ -88,6 +92,70 @@ describe("SledSimulation", () => {
     expect(strongLeft).toBeLessThan(weakLeft * 3);
     expect(weakRight).toBeCloseTo(-weakLeft, 5);
     expect(strongRight).toBeCloseTo(-strongLeft, 5);
+  });
+
+  it("gains speed downhill and loses speed on the ramp climb", () => {
+    const simulation = new SledSimulation();
+    simulation.launch({ power: 0.22, aim: 0 });
+    const speeds = new Map<number, number>();
+    const checkpoints = [2, 10, 58, 65];
+
+    for (let tick = 0; tick < 60 * 8; tick += 1) {
+      simulation.update(1 / 60, { steer: 0 });
+      const snapshot = simulation.snapshot;
+      for (const checkpoint of checkpoints) {
+        if (!speeds.has(checkpoint) && snapshot.z >= checkpoint) {
+          speeds.set(checkpoint, snapshot.forwardSpeed);
+        }
+      }
+    }
+
+    expect(surfaceSlopeZAt(0, 5)).toBeLessThan(-0.1);
+    expect(surfaceSlopeZAt(0, 62)).toBeGreaterThan(0.2);
+    expect(speeds.get(10) ?? 0).toBeGreaterThan((speeds.get(2) ?? 0) + 0.2);
+    expect(speeds.get(65) ?? 100).toBeLessThan((speeds.get(58) ?? 0) - 1);
+  });
+
+  it("takes off, crosses an apex, and lands on the terrain", () => {
+    const simulation = new SledSimulation();
+    simulation.launch({ power: 0.22, aim: 0 });
+    let wasGrounded = true;
+    let sawTakeoff = false;
+    let sawRisingFlight = false;
+    let sawFallingFlight = false;
+    let sawLanding = false;
+    let maximumClearance = 0;
+    let landingImpact = 0;
+
+    for (let tick = 0; tick < 60 * 8; tick += 1) {
+      simulation.update(1 / 60, { steer: 0 });
+      const snapshot = simulation.snapshot;
+      const terrainHeight = surfaceHeightAt(snapshot.x, snapshot.z);
+      expect(snapshot.height).toBeGreaterThanOrEqual(terrainHeight - 1e-8);
+
+      if (!snapshot.grounded) {
+        sawTakeoff = true;
+        sawRisingFlight ||= snapshot.verticalSpeed > 0.5;
+        sawFallingFlight ||= snapshot.verticalSpeed < -0.5;
+        maximumClearance = Math.max(
+          maximumClearance,
+          snapshot.height - terrainHeight,
+        );
+      }
+      if (!wasGrounded && snapshot.grounded) {
+        sawLanding = true;
+        landingImpact = snapshot.landingImpact;
+        expect(snapshot.height).toBeCloseTo(terrainHeight, 8);
+      }
+      wasGrounded = snapshot.grounded;
+    }
+
+    expect(sawTakeoff).toBe(true);
+    expect(sawRisingFlight).toBe(true);
+    expect(sawFallingFlight).toBe(true);
+    expect(sawLanding).toBe(true);
+    expect(maximumClearance).toBeGreaterThan(2);
+    expect(landingImpact).toBeGreaterThan(2);
   });
 
   it("slows down and reaches a stable stopped state", () => {

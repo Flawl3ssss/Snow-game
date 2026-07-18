@@ -22,6 +22,7 @@ import type { BufferAttribute, BufferGeometry, Material } from "three";
 import type { GameState } from "../app/GameStateMachine";
 import {
   surfaceHeightAt,
+  surfaceSlopeZAt,
   type LaunchParameters,
   type SledSnapshot,
 } from "../simulation/SledSimulation";
@@ -37,6 +38,7 @@ export class SnowScene {
   private renderWidth = 1;
   private renderHeight = 1;
   private cameraX = 0;
+  private cameraY = 5.5;
   private cameraZ = -10;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -59,6 +61,7 @@ export class SnowScene {
     this.scene.add(sun);
 
     this.scene.add(this.createTrack());
+    this.createRampMarkers();
     this.createRider();
     [this.leftBand, this.rightBand] = this.createSlingshot();
     this.createScenery();
@@ -82,13 +85,16 @@ export class SnowScene {
     const pullZ = isPreparing ? -aim.power * 3.1 : 0;
     const pullX = isPreparing ? aim.aim * aim.power * 2.15 : snapshot.x;
     const riderZ = isPreparing ? pullZ : snapshot.z;
-    const riderHeight = surfaceHeightAt(pullX, riderZ);
+    const riderHeight = isPreparing
+      ? surfaceHeightAt(pullX, riderZ)
+      : snapshot.height;
+    const terrainPitch = Math.atan(surfaceSlopeZAt(pullX, riderZ));
 
     this.rider.position.set(pullX, riderHeight + 0.34, riderZ);
     this.rider.rotation.set(
-      MathUtils.degToRad(-4.6),
+      -(isPreparing ? terrainPitch : snapshot.pitchRadians),
       isPreparing ? aim.aim * 0.18 : snapshot.headingRadians,
-      0,
+      isPreparing ? 0 : snapshot.rollRadians,
     );
     this.slingshot.visible = isPreparing;
     if (isPreparing) this.updateBand(this.leftBand, -1.65, this.rider.position);
@@ -98,15 +104,23 @@ export class SnowScene {
     const desiredCameraZ = isPreparing ? -10 : snapshot.z - 10;
     this.cameraX = MathUtils.lerp(this.cameraX, desiredCameraX, 0.13);
     this.cameraZ = MathUtils.lerp(this.cameraZ, desiredCameraZ, 0.13);
-    const targetZ = riderZ + 13;
-    this.camera.position.set(
-      this.cameraX,
-      surfaceHeightAt(this.cameraX, this.cameraZ) + 5.5,
-      this.cameraZ,
-    );
+    const terrainCameraY = surfaceHeightAt(this.cameraX, this.cameraZ) + 5.5;
+    const desiredCameraY = isPreparing
+      ? terrainCameraY
+      : Math.max(terrainCameraY, snapshot.height + 4.8);
+    this.cameraY = MathUtils.lerp(this.cameraY, desiredCameraY, 0.1);
+    const targetZ = riderZ + (snapshot.grounded || isPreparing ? 13 : 9);
+    const targetTerrainY = surfaceHeightAt(snapshot.x, targetZ) + 0.7;
+    const targetY = isPreparing
+      ? targetTerrainY
+      : Math.max(
+          targetTerrainY,
+          snapshot.height + (snapshot.grounded ? 0.2 : -0.2),
+        );
+    this.camera.position.set(this.cameraX, this.cameraY, this.cameraZ);
     this.camera.lookAt(
       isPreparing ? pullX * 0.25 : snapshot.x,
-      surfaceHeightAt(snapshot.x, targetZ) + 0.7,
+      targetY,
       targetZ,
     );
     this.renderer.render(this.scene, this.camera);
@@ -114,6 +128,7 @@ export class SnowScene {
 
   resetCamera(): void {
     this.cameraX = 0;
+    this.cameraY = 5.5;
     this.cameraZ = -10;
   }
 
@@ -121,6 +136,10 @@ export class SnowScene {
     const isPreparing = state === "BASE" || state === "AIMING";
     this.cameraX = isPreparing ? 0 : snapshot.x;
     this.cameraZ = isPreparing ? -10 : snapshot.z - 10;
+    const terrainCameraY = surfaceHeightAt(this.cameraX, this.cameraZ) + 5.5;
+    this.cameraY = isPreparing
+      ? terrainCameraY
+      : Math.max(terrainCameraY, snapshot.height + 4.8);
   }
 
   get sizeLabel(): string {
@@ -141,7 +160,7 @@ export class SnowScene {
   }
 
   private createTrack(): Mesh<PlaneGeometry, MeshStandardMaterial> {
-    const geometry = new PlaneGeometry(58, 400, 18, 100);
+    const geometry = new PlaneGeometry(58, 400, 28, 280);
     geometry.rotateX(-Math.PI / 2);
     const positions = geometry.getAttribute("position") as BufferAttribute;
 
@@ -160,6 +179,20 @@ export class SnowScene {
         metalness: 0,
       }),
     );
+  }
+
+  private createRampMarkers(): void {
+    const material = new MeshStandardMaterial({
+      color: 0xff8b36,
+      roughness: 0.82,
+      metalness: 0,
+    });
+    for (const z of [66, 135]) {
+      const marker = new Mesh(new BoxGeometry(8.5, 0.1, 7.5), material);
+      marker.position.set(0, surfaceHeightAt(0, z) + 0.06, z);
+      marker.rotation.x = -Math.atan(surfaceSlopeZAt(0, z));
+      this.scene.add(marker);
+    }
   }
 
   private createRider(): void {
