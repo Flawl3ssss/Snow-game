@@ -70,7 +70,7 @@ export class SnowScene {
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: false,
       powerPreference: "high-performance",
     });
     this.renderer.outputColorSpace = SRGBColorSpace;
