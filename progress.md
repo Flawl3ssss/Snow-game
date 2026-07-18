@@ -65,3 +65,6 @@ G3 — visual dynamics and speed readability.
 - G3 adds physics-driven visual feedback: progressive world-space wind streaks, grounded snow spray, airborne contact shadow, landing squash/burst, event-colored particles, boost sled glow, and a CSS speed vignette.
 - All effect pools are fixed and recycled (44 wind segments, 84 spray particles, 60 event particles). No per-frame mesh creation or post-processing pass was introduced.
 - Visual effect state is now part of `render_game_to_text`, allowing browser tests to verify that high-speed motion, snow contact, and event feedback are active rather than relying only on screenshots.
+- Ramp reliability fix: both ramp lips now use swept path detection, so a boosted sled cannot step over the takeoff zone between physics frames. Boosted center and ±5 m approach lines are covered at a deliberately coarse 50 ms simulation step.
+- Ground steering is sharper through faster input response, stronger lateral acceleration, and slightly higher high-speed traction. Direction reversal now becomes meaningful within roughly 0.6 seconds without changing the direct-input convention.
+- Air steering now applies limited lateral acceleration and a restrained visual roll. It is intentionally weaker than snow steering but can alter the landing line during a normal jump.
