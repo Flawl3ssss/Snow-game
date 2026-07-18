@@ -31,6 +31,7 @@ type GameText = {
     activeSprayParticles: number;
     activeBurstParticles: number;
     activeShockwaves: number;
+    wakeOpacity: number;
     shadowClearance: number;
   };
 };
@@ -199,6 +200,11 @@ test("ramp produces a rising arc, falling arc, and grounded landing", async ({
   const landed = await readGame(page);
   expect(landed.rider.grounded).toBe(true);
   expect(landed.rider.landingImpact).toBeGreaterThan(1.5);
+  expect(landed.visualEffects.activeShockwaves).toBeGreaterThan(0);
+  await page.screenshot({
+    path: `artifacts/playtests/g3-landing-${test.info().project.name}.png`,
+    fullPage: true,
+  });
 });
 
 test("dynamic course awards a pickup, score, and visible feedback", async ({
@@ -217,9 +223,31 @@ test("dynamic course awards a pickup, score, and visible feedback", async ({
   expect(state.visualEffects.activeSprayParticles).toBeGreaterThan(0);
   expect(state.visualEffects.activeBurstParticles).toBeGreaterThan(0);
   expect(state.visualEffects.activeShockwaves).toBeGreaterThan(0);
+  expect(state.visualEffects.wakeOpacity).toBeGreaterThan(0.3);
   await expect(page.getByTestId("run-goal")).toContainText("1/3");
   await page.screenshot({
     path: `artifacts/playtests/g2-dynamic-course-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+});
+
+test("side boost creates a gold burst and readable speed feedback", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await launch(page, 0);
+  await page.keyboard.down("KeyA");
+  await advance(page, 500);
+  await page.keyboard.up("KeyA");
+  await advance(page, 1500);
+
+  const state = await readGame(page);
+  expect(state.dynamics.consumedIds).toContain("b01");
+  expect(state.visualEffects.windIntensity).toBeGreaterThan(0.5);
+  expect(state.visualEffects.activeBurstParticles).toBeGreaterThan(20);
+  expect(state.visualEffects.activeShockwaves).toBeGreaterThan(0);
+  await page.screenshot({
+    path: `artifacts/playtests/g3-boost-${test.info().project.name}.png`,
     fullPage: true,
   });
 });
