@@ -135,7 +135,7 @@ test("mobile-style drag uses the corrected steering direction", async ({
   expect(state.rider.x).toBeLessThan(-1);
 });
 
-test("slingshot horizontal pull launches directly toward that side", async ({
+test("right screen pull retracts and launches toward screen right", async ({
   page,
 }) => {
   await page.goto("/");
@@ -144,7 +144,8 @@ test("slingshot horizontal pull launches directly toward that side", async ({
 
   const state = await readGame(page);
   expect(state.state).toBe("RIDING");
-  expect(state.rider.x).toBeGreaterThan(0.5);
+  // The follow camera looks toward +z, so its screen-right axis is world -x.
+  expect(state.rider.x).toBeLessThan(-0.5);
 });
 
 test("ramp produces a rising arc, falling arc, and grounded landing", async ({
