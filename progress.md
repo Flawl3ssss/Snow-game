@@ -2,7 +2,7 @@ Original prompt: создать качественную мобильную 3D w
 
 ## Current stage
 
-G1 — grey movement prototype.
+G3 — visual dynamics and speed readability.
 
 ## Completed
 
@@ -62,3 +62,6 @@ G1 — grey movement prototype.
 - Versioned local progression persists coins, records, run count, and two five-level upgrades. Launch adds 0.75 m/s per level; glide reduces snow resistance by 6% per level. Corrupt or unavailable storage falls back without blocking play.
 - Economy balance makes the first successful central run complete a three-snowflake goal and earn enough for the first 10-coin launch upgrade. Side boost routes favor distance; central ramps favor score and airtime.
 - Verification expanded to 49 unit/integration tests before browser CI. The professional browser-game preflight passes all 14 applicable gates with no warnings or failures.
+- G3 adds physics-driven visual feedback: progressive world-space wind streaks, grounded snow spray, airborne contact shadow, landing squash/burst, event-colored particles, boost sled glow, and a CSS speed vignette.
+- All effect pools are fixed and recycled (44 wind segments, 84 spray particles, 60 event particles). No per-frame mesh creation or post-processing pass was introduced.
+- Visual effect state is now part of `render_game_to_text`, allowing browser tests to verify that high-speed motion, snow contact, and event feedback are active rather than relying only on screenshots.
