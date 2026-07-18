@@ -42,6 +42,7 @@ export type SpeedEffectSnapshot = {
   activeSprayParticles: number;
   activeBurstParticles: number;
   activeShockwaves: number;
+  wakeOpacity: number;
   shadowClearance: number;
 };
 
@@ -143,6 +144,18 @@ export class SpeedEffects {
       depthWrite: false,
     }),
   );
+  private readonly wakeGeometry = new PlaneGeometry(2, 2);
+  private readonly wakeMaterial = new MeshBasicMaterial({
+    color: 0xc9f3ff,
+    map: this.particleTexture,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  private readonly wakes = [
+    new Mesh(this.wakeGeometry, this.wakeMaterial),
+    new Mesh(this.wakeGeometry, this.wakeMaterial),
+  ];
   private readonly shockwaves: ShockwaveState[] = [];
   private readonly reducedMotion: boolean;
   private previousElapsed = 0;
@@ -157,6 +170,7 @@ export class SpeedEffects {
     activeSprayParticles: 0,
     activeBurstParticles: 0,
     activeShockwaves: 0,
+    wakeOpacity: 0,
     shadowClearance: 0,
   };
 
@@ -190,6 +204,11 @@ export class SpeedEffects {
 
     this.shadow.rotation.x = -Math.PI / 2;
     this.shadow.renderOrder = 1;
+    for (const wake of this.wakes) {
+      wake.rotation.x = -Math.PI / 2;
+      wake.renderOrder = 1;
+      scene.add(wake);
+    }
     for (let index = 0; index < SHOCKWAVES; index += 1) {
       const mesh = new Mesh(
         new RingGeometry(0.72, 1, 32),
@@ -218,6 +237,7 @@ export class SpeedEffects {
     const landed = active && !this.previousGrounded && snapshot.grounded;
 
     this.updateShadow(snapshot, active);
+    this.updateWake(snapshot, active, intensity);
     this.updateWind(snapshot, intensity);
     this.updateParticles(dt);
     this.updateShockwaves(dt);
@@ -274,6 +294,8 @@ export class SpeedEffects {
     this.sprayMaterial.dispose();
     this.burstGeometry.dispose();
     this.burstMaterial.dispose();
+    this.wakeGeometry.dispose();
+    this.wakeMaterial.dispose();
     this.particleTexture.dispose();
     this.shadowTexture.dispose();
     for (const shockwave of this.shockwaves) {
@@ -319,6 +341,37 @@ export class SpeedEffects {
       0.075,
       0.37,
     );
+  }
+
+  private updateWake(
+    snapshot: SledSnapshot,
+    active: boolean,
+    intensity: number,
+  ): void {
+    const visible =
+      active &&
+      snapshot.grounded &&
+      snapshot.forwardSpeed > 4 &&
+      !this.reducedMotion;
+    const opacity = visible
+      ? MathUtils.clamp(
+          0.2 + snapshot.forwardSpeed * 0.012 + intensity * 0.22,
+          0,
+          0.68,
+        )
+      : 0;
+    this.wakeMaterial.opacity = opacity;
+    const terrainHeight = surfaceHeightAt(snapshot.x, snapshot.z - 1.7);
+    for (const [index, wake] of this.wakes.entries()) {
+      wake.visible = visible;
+      const side = index === 0 ? -0.66 : 0.66;
+      wake.position.set(
+        snapshot.x + side,
+        terrainHeight + 0.055,
+        snapshot.z - 1.65,
+      );
+      wake.scale.set(0.52 + intensity * 0.22, 1.35 + intensity * 1.15, 1);
+    }
   }
 
   private updateParticles(dt: number): void {
@@ -507,6 +560,7 @@ export class SpeedEffects {
       activeSprayParticles,
       activeBurstParticles,
       activeShockwaves,
+      wakeOpacity: this.wakeMaterial.opacity,
       shadowClearance: Math.max(
         0,
         snapshot.height - surfaceHeightAt(snapshot.x, snapshot.z),
