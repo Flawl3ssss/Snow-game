@@ -62,26 +62,53 @@ button {
   background:
     radial-gradient(
       ellipse at 50% 48%,
-      transparent 0 47%,
-      rgba(182, 239, 255, 0.04) 61%,
-      rgba(50, 158, 199, 0.26) 100%
+      transparent 0 52%,
+      rgba(110, 218, 255, 0.08) 68%,
+      rgba(18, 116, 166, 0.42) 100%
     ),
     linear-gradient(
-      100deg,
-      rgba(224, 249, 255, 0.26),
-      transparent 13% 87%,
-      rgba(224, 249, 255, 0.26)
+      90deg,
+      rgba(206, 246, 255, 0.36),
+      transparent 18% 82%,
+      rgba(206, 246, 255, 0.36)
     );
-  opacity: calc(var(--speed-intensity) * 0.9);
+  opacity: calc(var(--speed-intensity) * 0.96);
   transition: opacity 90ms linear;
+}
+
+.speed-vignette::before,
+.speed-vignette::after {
+  content: "";
+  position: absolute;
+  top: -12%;
+  bottom: -12%;
+  width: 24%;
+  background: repeating-linear-gradient(
+    104deg,
+    transparent 0 26px,
+    rgba(226, 250, 255, 0.08) 28px 31px,
+    rgba(100, 215, 255, 0.42) 34px 37px,
+    transparent 40px 76px
+  );
+  background-size: 100% 160px;
+  animation: speed-stream 420ms linear infinite;
+}
+
+.speed-vignette::before {
+  left: 0;
+}
+
+.speed-vignette::after {
+  right: 0;
+  transform: scaleX(-1);
 }
 
 .speed-vignette.is-airborne {
   background: radial-gradient(
     ellipse at 50% 52%,
-    transparent 0 55%,
-    rgba(103, 200, 232, 0.08) 72%,
-    rgba(32, 122, 166, 0.24) 100%
+    transparent 0 58%,
+    rgba(103, 200, 232, 0.12) 74%,
+    rgba(25, 112, 158, 0.38) 100%
   );
 }
 
@@ -427,6 +454,15 @@ button {
   }
   to {
     transform: scale(1);
+  }
+}
+
+@keyframes speed-stream {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 160px;
   }
 }
 
