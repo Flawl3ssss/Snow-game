@@ -236,7 +236,7 @@ export class GameShell {
     this.resultDistance.textContent = snapshot.distanceMeters.toFixed(0);
     const speedIntensity = Math.max(
       0,
-      Math.min(1, (snapshot.forwardSpeed - 13) / 15),
+      Math.min(1, (snapshot.forwardSpeed - 9.5) / 15.5),
     );
     this.speedVignette.style.setProperty(
       "--speed-intensity",

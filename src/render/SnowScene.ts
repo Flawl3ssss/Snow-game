@@ -14,6 +14,7 @@ import {
   OctahedronGeometry,
   PerspectiveCamera,
   PlaneGeometry,
+  PointLight,
   Scene,
   SphereGeometry,
   SRGBColorSpace,
@@ -28,6 +29,7 @@ import {
   type RunDynamicsSnapshot,
 } from "../gameplay/RunDynamics";
 import {
+  RAMP_PHYSICAL_HALF_WIDTH,
   surfaceHeightAt,
   surfaceSlopeZAt,
   type LaunchParameters,
@@ -50,6 +52,7 @@ export class SnowScene {
     emissiveIntensity: 0,
     roughness: 0.55,
   });
+  private readonly boostLight = new PointLight(0xffb632, 0, 8, 2);
   private readonly speedEffects: SpeedEffects;
   private readonly reducedMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)",
@@ -62,6 +65,7 @@ export class SnowScene {
   private boostPulse = 0;
   private impactShake = 0;
   private landingSquash = 0;
+  private previousGrounded = true;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({
@@ -121,9 +125,23 @@ export class SnowScene {
       isPreparing ? aim.aim * 0.18 : snapshot.headingRadians,
       isPreparing ? 0 : snapshot.rollRadians,
     );
+    if (
+      state === "RIDING" &&
+      !this.previousGrounded &&
+      snapshot.grounded &&
+      snapshot.landingImpact > 0.6
+    ) {
+      this.landingSquash = MathUtils.clamp(
+        0.38 + snapshot.landingImpact * 0.075,
+        0.38,
+        1,
+      );
+    }
+    this.previousGrounded = snapshot.grounded;
     const squash = this.reducedMotion ? 0 : this.landingSquash;
     this.rider.scale.set(1 + squash * 0.045, 1 - squash * 0.075, 1.02);
-    this.sledMaterial.emissiveIntensity = this.boostPulse * 1.15;
+    this.sledMaterial.emissiveIntensity = this.boostPulse * 2.6;
+    this.boostLight.intensity = this.boostPulse * 7;
     this.slingshot.visible = isPreparing;
     if (isPreparing) this.updateBand(this.leftBand, -1.65, this.rider.position);
     if (isPreparing) this.updateBand(this.rightBand, 1.65, this.rider.position);
@@ -173,11 +191,13 @@ export class SnowScene {
     );
     const desiredFov = this.reducedMotion
       ? 55
-      : 55 + Math.min(7, snapshot.forwardSpeed * 0.26) + this.boostPulse * 4;
-    this.camera.fov = MathUtils.lerp(this.camera.fov, desiredFov, 0.09);
+      : 55 +
+        Math.min(10, Math.max(0, snapshot.forwardSpeed - 8) * 0.48) +
+        this.boostPulse * 6;
+    this.camera.fov = MathUtils.lerp(this.camera.fov, desiredFov, 0.13);
     this.camera.updateProjectionMatrix();
     this.speedEffects.update(snapshot, state === "RIDING");
-    this.boostPulse *= 0.9;
+    this.boostPulse *= 0.94;
     this.impactShake *= 0.84;
     this.landingSquash *= 0.78;
     this.renderer.render(this.scene, this.camera);
@@ -197,6 +217,7 @@ export class SnowScene {
     this.cameraX = 0;
     this.cameraY = 5.5;
     this.cameraZ = -10;
+    this.previousGrounded = true;
     this.speedEffects.reset();
   }
 
@@ -261,7 +282,10 @@ export class SnowScene {
       metalness: 0,
     });
     for (const z of [66, 135]) {
-      const marker = new Mesh(new BoxGeometry(8.5, 0.1, 7.5), material);
+      const marker = new Mesh(
+        new BoxGeometry(RAMP_PHYSICAL_HALF_WIDTH * 2, 0.1, 7.5),
+        material,
+      );
       marker.position.set(0, surfaceHeightAt(0, z) + 0.06, z);
       marker.rotation.x = -Math.atan(surfaceSlopeZAt(0, z));
       this.scene.add(marker);
@@ -277,7 +301,8 @@ export class SnowScene {
     );
     body.scale.set(0.88, 1.2, 0.82);
     body.position.set(0, 0.9, 0.1);
-    this.rider.add(sled, body);
+    this.boostLight.position.set(0, 0.45, -0.4);
+    this.rider.add(sled, body, this.boostLight);
     this.scene.add(this.rider);
   }
 

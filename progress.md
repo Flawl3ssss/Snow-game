@@ -68,3 +68,7 @@ G3 — visual dynamics and speed readability.
 - Ramp reliability fix: both ramp lips now use swept path detection, so a boosted sled cannot step over the takeoff zone between physics frames. Boosted center and ±5 m approach lines are covered at a deliberately coarse 50 ms simulation step.
 - Ground steering is sharper through faster input response, stronger lateral acceleration, and slightly higher high-speed traction. Direction reversal now becomes meaningful within roughly 0.6 seconds without changing the direct-input convention.
 - Air steering now applies limited lateral acceleration and a restrained visual roll. It is intentionally weaker than snow steering but can alter the landing line during a normal jump.
+- G3.1 VFX readability pass replaces low-contrast one-pixel wind with 58 instanced cyan streaks, increases snow/event pools to 128/112 soft textured particles, hides expired particles correctly, and adds six pooled expanding event rings.
+- Speed feedback now starts at 9.5 m/s, reaches full intensity at 25 m/s, uses animated edge streams with a clear center, expands FOV by up to 10 degrees, and gives boosts a longer emissive pulse plus local gold light.
+- Ramp edge root cause fixed: a landing immediately before the next lip no longer lets the generic 0.22 s anti-bounce cooldown suppress a real ramp. Each explicit ramp zone is consumed once, preventing both missed takeoffs and duplicate hops.
+- Physical and orange marker ramp width now match at ±6.4 m. Boosted lines at x = ±6.2, ±5, and center are regression-tested with 50 ms physics steps.
