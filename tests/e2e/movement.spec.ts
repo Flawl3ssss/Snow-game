@@ -126,3 +126,15 @@ test("mobile-style drag uses the corrected steering direction", async ({
   const state = await readGame(page);
   expect(state.rider.x).toBeLessThan(-1);
 });
+
+test("slingshot horizontal pull launches toward the corrected side", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await launch(page, 52);
+  await advance(page, 900);
+
+  const state = await readGame(page);
+  expect(state.state).toBe("RIDING");
+  expect(state.rider.x).toBeLessThan(-0.05);
+});
