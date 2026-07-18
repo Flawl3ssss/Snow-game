@@ -50,3 +50,4 @@ G1 — grey movement prototype.
 - Rider pitch/roll and follow-camera height now use simulation state. Orange ramp surfaces expose intentional jump lines, while off-center routes retain ordinary rolling terrain.
 - Physics coverage is now 10 focused sled tests (19 unit tests total), including no-underground penetration, uphill/downhill response, takeoff, apex, landing, and impact. A browser regression captures the airborne phase on desktop and mobile CI.
 - Local typecheck, lint, formatting, all 19 unit tests, and production build pass. Local Playwright remains blocked only by the missing Chromium executable; CI is the browser verification environment.
+- Slingshot screen-space correction: aiming now uses the same camera-relative horizontal conversion as riding. A finger pull to screen-left retracts and launches visually left; screen-right remains right, despite the follow camera's world-X projection being mirrored.

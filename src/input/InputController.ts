@@ -17,7 +17,7 @@ export const dragToSteer = (horizontalDrag: number): number =>
   clamp(-horizontalDrag, -1, 1);
 
 export const dragToAim = (horizontalDrag: number): number =>
-  clamp(horizontalDrag, -1, 1);
+  clamp(-horizontalDrag, -1, 1);
 
 export class InputController {
   private activePointerId: number | null = null;
