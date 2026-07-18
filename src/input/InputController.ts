@@ -13,6 +13,9 @@ type InputCallbacks = {
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
+export const dragToSteer = (horizontalDrag: number): number =>
+  clamp(-horizontalDrag, -1, 1);
+
 export class InputController {
   private activePointerId: number | null = null;
   private startX = 0;
@@ -78,7 +81,7 @@ export class InputController {
       const fullSteerPixels = Math.max(64, bounds.width * 0.18);
       const rawSteer = (event.clientX - this.startX) / fullSteerPixels;
       const deadZone = 0.04;
-      const steer = Math.abs(rawSteer) < deadZone ? 0 : clamp(rawSteer, -1, 1);
+      const steer = Math.abs(rawSteer) < deadZone ? 0 : dragToSteer(rawSteer);
       this.callbacks.onSteer(steer);
     }
   };

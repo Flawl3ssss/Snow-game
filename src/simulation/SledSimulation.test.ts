@@ -65,4 +65,20 @@ describe("SledSimulation", () => {
     expect(simulation.snapshot.x).toBeLessThanOrEqual(13.5);
     expect(Number.isFinite(simulation.snapshot.headingRadians)).toBe(true);
   });
+
+  it("settles smoothly at an edge instead of bouncing every fixed step", () => {
+    const simulation = new SledSimulation();
+    simulation.launch({ power: 1, aim: 0 });
+    const edgeSamples: number[] = [];
+
+    for (let tick = 0; tick < 60 * 12; tick += 1) {
+      simulation.update(1 / 60, { steer: 1 });
+      if (tick >= 60 * 10) edgeSamples.push(simulation.snapshot.lateralSpeed);
+    }
+
+    expect(simulation.snapshot.x).toBeCloseTo(13.5, 5);
+    expect(Math.max(...edgeSamples)).toBeLessThan(0.02);
+    expect(Math.min(...edgeSamples)).toBeGreaterThanOrEqual(0);
+    expect(Math.abs(simulation.snapshot.headingRadians)).toBeLessThan(0.002);
+  });
 });

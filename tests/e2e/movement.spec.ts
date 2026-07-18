@@ -104,3 +104,25 @@ test("left input remains left without hidden target attraction", async ({
     fullPage: true,
   });
 });
+
+test("mobile-style drag uses the corrected steering direction", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await launch(page, 0);
+  const box = await page.locator("canvas").boundingBox();
+  if (!box) throw new Error("Game canvas has no bounds");
+
+  const startX = box.x + box.width * 0.5;
+  const startY = box.y + box.height * 0.55;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + Math.min(90, box.width * 0.2), startY, {
+    steps: 6,
+  });
+  await advance(page, 2200);
+  await page.mouse.up();
+
+  const state = await readGame(page);
+  expect(state.rider.x).toBeLessThan(-1);
+});
