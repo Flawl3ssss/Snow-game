@@ -2,7 +2,7 @@ Original prompt: создать качественную мобильную 3D w
 
 ## Current stage
 
-G3 — visual dynamics and speed readability.
+G4 — character identity and production art direction.
 
 ## Completed
 
@@ -23,7 +23,8 @@ G3 — visual dynamics and speed readability.
 
 ## Current limitations
 
-- all rider/environment geometry is temporary grey-prototype art;
+- the approved procedural penguin is the runtime art blockout; a rigged Blender
+  GLB follows only after its chase-camera silhouette and motion are approved;
 - local environment cannot download Playwright Chromium, so browser evidence runs in GitHub Actions;
 - headless software-WebGL FPS is not a real-device performance measurement.
 
@@ -77,3 +78,23 @@ G3 — visual dynamics and speed readability.
 - Ground steering response, lateral authority, and high-speed traction were increased. Lateral targets fade to zero with forward momentum, so steering cannot propel a stopped sled sideways.
 - Ramp visuals now tessellate and conform to the exact shared physical ramp surfaces from start to end. The former short flat boxes and exposed snow crest were removed.
 - Verification: 62 unit/integration tests, typecheck, lint, formatting, and production build pass. Browser test invocation is locally blocked before page launch because the Playwright Chromium executable is absent; CI remains the screenshot/e2e verification environment.
+- G4 establishes the original `Penguin Rush` soft stylized low-poly direction,
+  with an art bible, palette, shape language, asset budgets, and a generated
+  composition concept kept as direction reference rather than shipped texture.
+- The placeholder rider is replaced by an articulated procedural penguin with
+  navy/ivory/coral identity colors, readable face and belly, steering-aware
+  head and flippers, airborne balance pose, reduced-motion-safe secondary
+  animation, and a four-slat turquoise sled with separate metal runners.
+- Lighting now uses a cool hemisphere fill and warm sun. Snow receives subtle
+  center-to-edge vertex variation while preserving route readability.
+- Scenery is upgraded to layered snow-capped pines and distant faceted
+  mountains. All 46 trees share five instanced batches instead of creating
+  unique geometry per tree, keeping the richer silhouette mobile-friendly.
+- Verification for the art slice: 65 unit/integration tests, lint, formatting,
+  typecheck, and production build pass. Chromium screenshot evidence will be
+  generated and manually reviewed in CI before merge.
+- First G4 browser review covered 13 successful mobile/desktop scenarios and
+  caught two actionable issues: the airborne flipper rotations folded behind
+  the torso, and the boost scenario mixed browser wall-clock frames with a
+  deterministic time jump. Flippers now open outward, while the route test
+  uses a direct slingshot lane aim so rendering speed cannot change its path.

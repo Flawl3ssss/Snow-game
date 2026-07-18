@@ -4,6 +4,11 @@ export default defineConfig({
   testDir: "./tests/e2e",
   outputDir: "./test-results",
   fullyParallel: false,
+  // Two concurrent software-WebGL contexts compete heavily on hosted CI and
+  // make screenshot timing meaningless. Serial projects keep the evidence
+  // deterministic; real-device performance is measured separately.
+  workers: 1,
+  timeout: 45_000,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:4173",
