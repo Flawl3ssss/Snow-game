@@ -41,6 +41,7 @@ export const SLED_PHYSICS = {
   activeLateralResponse: 4.8,
   neutralLateralResponse: 0.62,
   takeoffGravityRatio: 0.72,
+  minimumTakeoffVerticalSpeed: 1,
   landingLossPerImpact: 0.014,
   maximumLandingLoss: 0.24,
   stopSpeed: 0.55,
@@ -224,6 +225,7 @@ export class SledSimulation {
       this.z > 8 &&
       this.forwardSpeed > 6 &&
       slope > 0 &&
+      this.forwardSpeed * slope >= SLED_PHYSICS.minimumTakeoffVerticalSpeed &&
       requiredVerticalAcceleration <
         -SLED_PHYSICS.gravity * SLED_PHYSICS.takeoffGravityRatio;
 
@@ -320,11 +322,11 @@ export class SledSimulation {
   }
 
   private resolveTrackEdges(): void {
-    if (this.x >= SLED_PHYSICS.trackHalfWidth) {
+    if (this.x > SLED_PHYSICS.trackHalfWidth) {
       this.x = SLED_PHYSICS.trackHalfWidth;
       this.lateralSpeed = Math.min(0, this.lateralSpeed);
       this.forwardSpeed *= 0.965;
-    } else if (this.x <= -SLED_PHYSICS.trackHalfWidth) {
+    } else if (this.x < -SLED_PHYSICS.trackHalfWidth) {
       this.x = -SLED_PHYSICS.trackHalfWidth;
       this.lateralSpeed = Math.max(0, this.lateralSpeed);
       this.forwardSpeed *= 0.965;
