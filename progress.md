@@ -41,3 +41,4 @@ G1 — grey movement prototype.
 - Second evidence review showed the cinematic lateral camera offset could still place the rider outside a narrow mobile frame at the track boundary. G1 now centers the camera on the rider; evidence must be regenerated once more.
 - GitHub Pages deployment workflow added for a one-click playable build. It publishes both the current G1 branch and future `main` updates using the `/Snow-game/` asset base path.
 - Control-feel fix: mobile drag steering is inverted into the requested camera-relative direction while keyboard controls stay conventional. Edge steering now fades over the final 2.25 m and clamps without velocity reversal, removing high-speed boundary chatter.
+- Slingshot fix: horizontal aiming now uses the same corrected camera-relative direction as riding drag input, with separate unit and browser regression coverage.

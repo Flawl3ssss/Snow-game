@@ -16,6 +16,9 @@ const clamp = (value: number, min: number, max: number): number =>
 export const dragToSteer = (horizontalDrag: number): number =>
   clamp(-horizontalDrag, -1, 1);
 
+export const dragToAim = (horizontalDrag: number): number =>
+  clamp(-horizontalDrag, -1, 1);
+
 export class InputController {
   private activePointerId: number | null = null;
   private startX = 0;
@@ -74,7 +77,7 @@ export class InputController {
       const maxAimPixels = Math.max(90, bounds.width * 0.28);
       this.aim = {
         power: clamp((event.clientY - this.startY) / maxPullPixels, 0, 1),
-        aim: clamp((event.clientX - this.startX) / maxAimPixels, -1, 1),
+        aim: dragToAim((event.clientX - this.startX) / maxAimPixels),
       };
       this.callbacks.onAimChange(this.aim);
     } else if (this.mode === "steer") {
