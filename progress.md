@@ -2,7 +2,7 @@ Original prompt: создать качественную мобильную 3D w
 
 ## Current stage
 
-G4 — character identity and production art direction.
+G5 — premium smooth stylized 3D production models.
 
 ## Completed
 
@@ -98,3 +98,30 @@ G4 — character identity and production art direction.
   the torso, and the boost scenario mixed browser wall-clock frames with a
   deterministic time jump. Flippers now open outward, while the route test
   uses a direct slingshot lane aim so rendering speed cannot change its path.
+- The G4 low-poly direction was rejected and is now explicitly marked as
+  superseded. G5 targets smooth animated-feature stylization with bevels,
+  curves, layered construction, and surface-specific material response.
+- A complete model manifest now covers the penguin, crafted sled, slingshot,
+  two ramps, snowflake, boost pad, three rock variants, firs, mountains,
+  direction signs, safety fences, and the existing contact/VFX models.
+- Placeholder primitives were replaced with compound runtime models: curved
+  TubeGeometry runners and ramp rails, rounded sled boards and straps,
+  articulated ice snowflakes, inset-chevron boost pads, smooth snow-capped
+  rocks, high-segment trees/mountains, wooden signs, and safety fencing.
+- First G5 CI exposed a draw-call failure rather than a physics regression:
+  compound details were still separate meshes, making screenshots exceed the
+  45-second software-WebGL budget. Same-material pieces are now merged so a
+  snowflake uses one draw call instead of 16, boosts use two instead of seven,
+  and signs, fences, and slingshot posts use two each. Expensive physical
+  shader features were removed where they did not survive gameplay distance.
+- Manual review of the optimized evidence rejected three remaining art issues:
+  stacked-sphere firs, bracket-like boost marks, and direction arrows facing
+  away from the chase camera. Firs now use a smooth revolved branch profile
+  with three snow shelves, boost pads use filled beveled chevrons, and signs
+  present their arrows toward the player. The tree pass also drops two shared
+  draw-call batches compared with the rejected version.
+- A second evidence review still found primitive cone mountains and overly flat
+  snow bands. Both now use dense spline-sampled LatheGeometry profiles: rounded
+  mountain shoulders and fitted summit caps in the distance, plus curved snow
+  shelves following the fir branch silhouette. No additional draw calls were
+  introduced by this polish pass.
